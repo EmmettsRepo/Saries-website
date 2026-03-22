@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /profile
+Disallow: /admin
+
+# TODO: Update sitemap URL when custom domain is ready
+Sitemap: https://bakkers-website-847ba.web.app/sitemap.xml

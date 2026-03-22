@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #3A4A4B;
+  --color-primary-light: #4D5F60;
+  --color-accent: #9AACAB;
+  --color-accent-light: #B3C2C1;
+  --color-cream: #F4F5F3;
+  --color-warm-white: #FAFBFA;
+  --color-dark: #2B2F31;
+  --color-dark-soft: #3D4244;
+  --color-muted: #7A8385;
+  --color-border: #DFE3E3;
+  --color-card: #EEF0EF;
+  --color-footer-bg: #2B2F31;
+
+  --font-heading: var(--font-heading), "Georgia", serif;
+  --font-body: var(--font-body), "Helvetica Neue", sans-serif;
+  --font-sans: var(--font-body), "Helvetica Neue", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  background-color: var(--color-warm-white);
+  color: var(--color-dark);
+  font-family: var(--font-body);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* ===== TEXTURE OVERLAYS ===== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+.bg-cream,
+.bg-warm-white {
+  position: relative;
+}
+.bg-cream::after,
+section.bg-cream::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 512px 512px;
+}
+
+.bg-dark::after,
+footer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='darkgrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23darkgrain)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* ===== DIVIDERS ===== */
+.divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+}
+
+/* ===== WATERCOLOR WASH — organic background bleed on cream sections ===== */
+section.bg-cream::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: 10%;
+  width: 80%;
+  height: 80px;
+  background: radial-gradient(ellipse at center, rgba(154, 172, 171, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Soft organic edge bleed — top and bottom of cream sections */
+section.bg-cream {
+  border-top: none;
+  border-bottom: none;
+  box-shadow:
+    inset 0 30px 60px -30px rgba(154, 172, 171, 0.04),
+    inset 0 -30px 60px -30px rgba(154, 172, 171, 0.04);
+}
+
+/* ===== BOTANICAL ACCENTS ===== */
+/* Recolor black PNGs to match the sage palette */
+.botanical-accent {
+  filter: sepia(0.4) hue-rotate(100deg) saturate(0.3) brightness(1.4);
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* The watercolor corner frame — keep its colors, just fade */
+.botanical-watercolor {
+  filter: saturate(0.4) brightness(1.1);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+/* Ivy divider styling */
+.botanical-divider {
+  filter: saturate(0.5) brightness(1.1);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* ===== IMAGE FRAMING ===== */
+.tilt-3d::after,
+.zoom-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.08);
+}
+
+.ken-burns::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.15) 100%);
+}
+
+/* ===== LEAVES BEHIND CONTENT ===== */
+main section,
+footer {
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== PREMIUM LINK UNDERLINES ===== */
+/* Elegant animated underline that draws from left to right */
+@media (hover: hover) {
+  .text-dark[class*="border-b"] {
+    border-bottom-color: transparent !important;
+    background-image: linear-gradient(var(--color-dark), var(--color-dark));
+    background-size: 0% 1px;
+    background-position: left bottom;
+    background-repeat: no-repeat;
+    transition: background-size 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.3s;
+    padding-bottom: 2px !important;
+  }
+  .text-dark[class*="border-b"]:hover {
+    background-size: 100% 1px;
+  }
+}
+
+/* ===== TACTILE BUTTONS ===== */
+@media (hover: hover) {
+  /* Filled buttons — press down effect */
+  a[class*="uppercase"][class*="bg-dark"],
+  a[class*="uppercase"][class*="bg-white"],
+  button[class*="uppercase"][class*="bg-dark"] {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  a[class*="uppercase"][class*="bg-dark"]:hover,
+  a[class*="uppercase"][class*="bg-white"]:hover,
+  button[class*="uppercase"][class*="bg-dark"]:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
+  a[class*="uppercase"][class*="bg-dark"]:active,
+  a[class*="uppercase"][class*="bg-white"]:active,
+  button[class*="uppercase"][class*="bg-dark"]:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  /* Outline buttons — subtle lift */
+  a[class*="uppercase"][class*="border-white"],
+  a[class*="uppercase"][class*="border-dark"] {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  a[class*="uppercase"][class*="border-white"]:active,
+  a[class*="uppercase"][class*="border-dark"]:active {
+    transform: scale(0.97);
+  }
+}
+
+/* ===== WARM IMAGE TREATMENT — scoped, not gallery ===== */
+section:not(.gallery-grid) img {
+  filter: contrast(1.02) saturate(0.95) brightness(1.01);
+}
+
+/* ===== TYPOGRAPHY POLISH ===== */
+/* Elegant heading letter-spacing tightening at large sizes */
+h1 { letter-spacing: -0.01em; }
+h2 { letter-spacing: -0.005em; }
+
+/* Proper paragraph spacing */
+p + p { margin-top: 0; }
+
+/* Uppercase labels — refined spacing */
+.tracking-\[0\.4em\],
+.tracking-\[0\.5em\],
+.tracking-\[0\.3em\] {
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* ===== SCROLLBAR ===== */
+@media (hover: hover) {
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-accent);
+    border-radius: 3px;
+  }
+}
+
+/* Heading utility */
+.font-heading { font-family: var(--font-heading); font-weight: 400; }
+
+/* ===== 3D EFFECTS — DESKTOP ONLY ===== */
+@media (hover: hover) {
+  .tilt-3d {
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-style: preserve-3d;
+    position: relative;
+  }
+  .tilt-3d:hover {
+    transform: perspective(800px) rotateY(-3deg) rotateX(2deg) scale(1.02);
+    box-shadow: 12px 16px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-3d {
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.6s ease;
+    transform-style: preserve-3d;
+  }
+  .card-3d:hover {
+    transform: perspective(1000px) translateZ(20px) rotateX(1deg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+  }
+
+  .depth-float {
+    transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.7s ease;
+  }
+  .depth-float:hover {
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.1);
+  }
+
+  .reveal-3d {
+    overflow: hidden;
+    transform-style: preserve-3d;
+  }
+  .reveal-3d img {
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .reveal-3d:hover img {
+    transform: scale(1.06) translateZ(10px);
+  }
+
+  @keyframes ken-burns {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.08); }
+  }
+  .ken-burns img {
+    animation: ken-burns 16s ease-in-out infinite alternate;
+  }
+
+  .shine-hover {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine-hover::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.6s ease;
+    z-index: 3;
+  }
+  .shine-hover:hover::after {
+    left: 150%;
+  }
+
+  .glow-hover {
+    transition: box-shadow 0.5s ease, transform 0.5s ease;
+  }
+  .glow-hover:hover {
+    box-shadow: 0 0 30px rgba(154, 172, 171, 0.25);
+    transform: translateY(-4px);
+  }
+
+  .zoom-container {
+    overflow: hidden;
+    position: relative;
+  }
+  .zoom-container img {
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .zoom-container:hover img {
+    transform: scale(1.08);
+  }
+}
+
+/* ===== MOBILE ===== */
+@media (hover: none) {
+  .tilt-3d,
+  .card-3d,
+  .depth-float,
+  .reveal-3d {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .ken-burns img {
+    animation: none !important;
+  }
+
+  .parallax-bg {
+    background-attachment: scroll !important;
+  }
+
+  body::before {
+    opacity: 0.015;
+  }
+}
+
+/* Hide scrollbar for horizontal scroll sections */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ===== SOFT SECTION TRANSITIONS ===== */
+section + section {
+  position: relative;
+}
+
+/* Keyframes */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-slow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== REDUCED MOTION — global catch-all ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
