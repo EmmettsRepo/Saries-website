@@ -12,6 +12,8 @@ import { useBotGuard } from "@/components/BotGuard";
 import { useAuth } from "@/components/AuthProvider";
 import AuthModal from "@/components/AuthModal";
 import StripePayment from "@/components/StripePayment";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
+import { FEATURES } from "@/lib/featureFlags";
 
 const eventTypeOptions = [
   "Wedding", "Elopement", "Birthday Celebration", "Family Gathering",
@@ -68,7 +70,9 @@ const boutiqueAddOns = [
 const steps = ["Event", "Package", "Vision", "Review", "Payment"];
 
 interface FormData {
-  eventType: string; preferredYear: string; preferredSeason: string; guestCount: number;
+  eventType: string; preferredYear: string; preferredSeason: string;
+  selectedDate: Date | null;
+  guestCount: number;
   duration: string; setting: string; selectedPackage: string; packagePrice: number;
   addOns: string[]; boutiqueItems: string[]; selectedChef: string; cateringPref: string; decorStyle: string; budget: string;
   specialRequests: string; hearAbout: string; agreeTerms: boolean;
@@ -86,7 +90,9 @@ export default function BookingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState<FormData>({
-    eventType: "", preferredYear: "", preferredSeason: "", guestCount: 30,
+    eventType: "", preferredYear: "", preferredSeason: "",
+    selectedDate: null,
+    guestCount: 30,
     duration: "", setting: "", selectedPackage: "", packagePrice: 0,
     addOns: [], boutiqueItems: [], selectedChef: "", cateringPref: "", decorStyle: "", budget: "",
     specialRequests: "", hearAbout: "", agreeTerms: false,
@@ -111,9 +117,8 @@ export default function BookingPage() {
   const validateStep = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 0) {
+      if (!form.selectedDate) errs.selectedDate = "Please select an arrival date from the calendar";
       if (!form.eventType) errs.eventType = "Required";
-      if (!form.preferredYear) errs.preferredYear = "Required";
-      if (!form.preferredSeason) errs.preferredSeason = "Required";
       if (!form.duration) errs.duration = "Required";
       if (!form.setting) errs.setting = "Required";
     }
@@ -143,15 +148,16 @@ export default function BookingPage() {
     try {
       await submitBookingInquiry({
         ...form,
+        selectedDate: form.selectedDate ? form.selectedDate.toISOString() : null,
         type: "booking",
         userId: user?.uid || "guest",
         email: user?.email || form.guestEmail,
         displayName: user?.displayName || form.guestName,
         phone: form.guestPhone || undefined,
         estimatedTotal: subtotal,
-        estimatedDeposit: deposit,
+        amountPaid: subtotal,
         paymentIntentId,
-        paymentStatus: "deposit_paid",
+        paymentStatus: "paid",
       });
       setSubmitted(true);
     } catch (err) {
@@ -167,14 +173,15 @@ export default function BookingPage() {
     if (addon.key === "catering") return sum + addon.price * form.guestCount;
     return sum + addon.price;
   }, 0);
-  const boutiqueTotal = form.boutiqueItems.reduce((sum, key) => {
-    const item = boutiqueAddOns.find((a) => a.key === key);
-    return item ? sum + item.price : sum;
-  }, 0);
+  const boutiqueTotal = FEATURES.BOUTIQUE
+    ? form.boutiqueItems.reduce((sum, key) => {
+        const item = boutiqueAddOns.find((a) => a.key === key);
+        return item ? sum + item.price : sum;
+      }, 0)
+    : 0;
   const selectedChef = form.selectedChef ? chefs.find((c) => c.id === form.selectedChef) : null;
   const chefTotal = selectedChef ? selectedChef.price * form.guestCount : 0;
   const subtotal = form.packagePrice + addOnTotal + boutiqueTotal + chefTotal;
-  const deposit = Math.round(subtotal * 0.25);
 
   const inputClass = (field: string) =>
     `w-full border-b bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none transition-colors ${
@@ -182,14 +189,17 @@ export default function BookingPage() {
     }`;
 
   if (submitted) {
+    const dateStr = form.selectedDate
+      ? form.selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+      : "";
     return (
       <div className="min-h-screen flex items-center justify-center px-6 pt-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
           <CheckCircle2 className="w-12 h-12 text-accent mx-auto mb-6" />
-          <h2 className="font-heading text-3xl text-dark mb-3">Booking Confirmed</h2>
-          <p className="text-muted text-sm mb-4">Your deposit of <span className="text-dark font-medium">${deposit.toLocaleString()}</span> has been received.</p>
-          <p className="text-muted text-sm mb-8">We&apos;ll review your {form.eventType.toLowerCase() || "event"} request for {form.preferredSeason} {form.preferredYear} and reach out via email to finalize details and confirm your date.</p>
-          {subtotal > 0 && <p className="text-muted text-sm mb-8">Estimated total: <span className="text-dark font-medium">${subtotal.toLocaleString()}</span> &middot; Remaining balance due 30 days before your event.</p>}
+          <h2 className="font-heading text-3xl text-dark mb-3">Reservation Confirmed</h2>
+          <p className="text-muted text-sm mb-4">Payment of <span className="text-dark font-medium">${subtotal.toLocaleString()}</span> received.</p>
+          {dateStr && <p className="text-muted text-sm mb-4">Arrival: <span className="text-dark font-medium">{dateStr}</span></p>}
+          <p className="text-muted text-sm mb-8">We&apos;ll send a confirmation email and reach out shortly to finalize details for your {form.eventType.toLowerCase() || "stay"}.</p>
           <Link href="/profile" className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-8 py-3.5 hover:bg-accent transition-colors duration-500">
             View Your Bookings
           </Link>
@@ -214,18 +224,26 @@ export default function BookingPage() {
 
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          {/* Progress */}
-          <div className="flex items-center justify-center gap-8 mb-16">
-            {steps.map((s, i) => (
-              <button key={s} onClick={() => i < step && setStep(i)} className="flex items-center gap-2">
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all ${
-                  i < step ? "bg-accent text-white" : i === step ? "border border-dark text-dark" : "border border-border text-muted"
-                }`}>
-                  {i < step ? <Check className="w-3 h-3" /> : i + 1}
-                </span>
-                <span className={`hidden sm:block text-[11px] tracking-[0.2em] uppercase ${i <= step ? "text-dark" : "text-muted"}`}>{s}</span>
-              </button>
-            ))}
+          {/* Progress Stepper */}
+          <div className="max-w-2xl mx-auto mb-12">
+            <div className="flex items-center justify-between relative">
+              {/* Connecting line */}
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-border" />
+              <div className="absolute top-4 left-0 h-[2px] bg-accent transition-all duration-500" style={{ width: `${(step / (steps.length - 1)) * 100}%` }} />
+
+              {steps.map((s, i) => (
+                <div key={s} className="relative flex flex-col items-center z-10">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
+                    i < step ? "bg-accent text-white" : i === step ? "bg-dark text-white ring-4 ring-dark/10" : "bg-white border-2 border-border text-muted"
+                  }`}>
+                    {i < step ? <Check className="w-4 h-4" /> : i + 1}
+                  </div>
+                  <span className={`mt-2 text-[10px] tracking-[0.15em] uppercase whitespace-nowrap ${
+                    i <= step ? "text-dark" : "text-muted"
+                  }`}>{s}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-5 gap-16">
@@ -235,6 +253,21 @@ export default function BookingPage() {
                   {/* STEP 0: Event Details */}
                   {step === 0 && (
                     <div className="space-y-8">
+                      {/* Availability Calendar — date selection */}
+                      <div>
+                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Select Your Date *</label>
+                        <AvailabilityCalendar
+                          selectedDate={form.selectedDate}
+                          onSelectDate={(date) => updateForm({ selectedDate: date })}
+                        />
+                        {form.selectedDate && (
+                          <p className="text-xs text-accent mt-3">
+                            Selected: {form.selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                          </p>
+                        )}
+                        {errors.selectedDate && <p className="text-red-500 text-xs mt-2">{errors.selectedDate}</p>}
+                      </div>
+
                       <h3 className="font-heading text-2xl text-dark">Event Details</h3>
                       <div>
                         <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Event Type *</label>
@@ -242,32 +275,7 @@ export default function BookingPage() {
                           <option value="">Select...</option>
                           {eventTypeOptions.map((t) => <option key={t}>{t}</option>)}
                         </select>
-                      </div>
-                      <div className="grid sm:grid-cols-2 gap-8">
-                        <div>
-                          <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Preferred Year *</label>
-                          <div className="flex gap-2">
-                            {yearOptions.map((y) => (
-                              <button key={y} type="button" onClick={() => updateForm({ preferredYear: y })}
-                                className={`flex-1 py-2.5 text-sm border transition-all ${form.preferredYear === y ? "border-dark text-dark" : "border-border text-muted hover:border-dark"}`}>
-                                {y}
-                              </button>
-                            ))}
-                          </div>
-                          {errors.preferredYear && <p className="text-red-500 text-xs mt-1">{errors.preferredYear}</p>}
-                        </div>
-                        <div>
-                          <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Preferred Season *</label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {seasonOptions.map((s) => (
-                              <button key={s} type="button" onClick={() => updateForm({ preferredSeason: s })}
-                                className={`py-2.5 text-xs border transition-all ${form.preferredSeason === s ? "border-dark text-dark" : "border-border text-muted hover:border-dark"}`}>
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                          {errors.preferredSeason && <p className="text-red-500 text-xs mt-1">{errors.preferredSeason}</p>}
-                        </div>
+                        {errors.eventType && <p className="text-red-500 text-xs mt-1">{errors.eventType}</p>}
                       </div>
                       <div>
                         <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Guest Count</label>
@@ -376,24 +384,26 @@ export default function BookingPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <p className="text-[11px] tracking-[0.2em] uppercase text-muted mb-2">Boutique Add-ons</p>
-                        <p className="text-xs text-muted mb-4">Elevate your event with curated boutique items</p>
-                        <div className="space-y-0">
-                          {boutiqueAddOns.map((item) => (
-                            <button key={item.key} type="button" onClick={() => toggleBoutiqueItem(item.key)}
-                              className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${form.boutiqueItems.includes(item.key) ? "text-dark" : "text-muted hover:text-dark"}`}>
-                              <span className="flex items-center gap-2">
-                                <div className={`w-3.5 h-3.5 border flex items-center justify-center ${form.boutiqueItems.includes(item.key) ? "bg-accent border-accent" : "border-border"}`}>
-                                  {form.boutiqueItems.includes(item.key) && <Check className="w-2.5 h-2.5 text-white" />}
-                                </div>
-                                {item.name}
-                              </span>
-                              <span>${item.price}{item.unit || ""}</span>
-                            </button>
-                          ))}
+                      {FEATURES.BOUTIQUE && (
+                        <div>
+                          <p className="text-[11px] tracking-[0.2em] uppercase text-muted mb-2">Boutique Add-ons</p>
+                          <p className="text-xs text-muted mb-4">Elevate your event with curated boutique items</p>
+                          <div className="space-y-0">
+                            {boutiqueAddOns.map((item) => (
+                              <button key={item.key} type="button" onClick={() => toggleBoutiqueItem(item.key)}
+                                className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${form.boutiqueItems.includes(item.key) ? "text-dark" : "text-muted hover:text-dark"}`}>
+                                <span className="flex items-center gap-2">
+                                  <div className={`w-3.5 h-3.5 border flex items-center justify-center ${form.boutiqueItems.includes(item.key) ? "bg-accent border-accent" : "border-border"}`}>
+                                    {form.boutiqueItems.includes(item.key) && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                                  {item.name}
+                                </span>
+                                <span>${item.price}{item.unit || ""}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -477,7 +487,7 @@ export default function BookingPage() {
 
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input type="checkbox" checked={form.agreeTerms} onChange={(e) => updateForm({ agreeTerms: e.target.checked })} className="w-4 h-4 mt-0.5 rounded-none border-border text-accent focus:ring-accent" />
-                        <span className="text-sm text-muted">I agree to pay a 25% non-refundable deposit to secure my date. The remaining balance is due 30 days before the event.</span>
+                        <span className="text-sm text-muted">I agree to pay the full amount to secure my reservation. Cancellations 60+ days out receive a 50% refund. Inside 60 days the booking is non-refundable.</span>
                       </label>
                       {errors.agreeTerms && <p className="text-red-500 text-xs">{errors.agreeTerms}</p>}
 
@@ -498,23 +508,24 @@ export default function BookingPage() {
                   {/* STEP 4: Payment */}
                   {step === 4 && (
                     <div className="space-y-8">
-                      <h3 className="font-heading text-2xl text-dark">Secure Your Date</h3>
-                      <p className="text-muted text-sm">Pay your 25% deposit to confirm your booking. You&apos;ll receive an email confirmation with all the details.</p>
+                      <h3 className="font-heading text-2xl text-dark">Confirm Your Reservation</h3>
+                      <p className="text-muted text-sm">Pay in full to lock in your dates. You&apos;ll receive an email confirmation with all the details.</p>
 
                       {submitting ? (
                         <div className="text-center py-12">
                           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                          <p className="text-muted text-sm">Confirming your booking...</p>
+                          <p className="text-muted text-sm">Confirming your reservation...</p>
                         </div>
                       ) : (
                         <StripePayment
-                          amount={deposit}
+                          amount={subtotal}
                           onSuccess={handlePaymentSuccess}
                           onError={(msg) => setPaymentError(msg)}
                           metadata={{
                             eventType: form.eventType,
                             guestCount: String(form.guestCount),
                             package: form.selectedPackage,
+                            arrivalDate: form.selectedDate ? form.selectedDate.toISOString().split("T")[0] : "",
                             customerEmail: user?.email || form.guestEmail,
                             customerName: user?.displayName || form.guestName,
                           }}
@@ -556,9 +567,8 @@ export default function BookingPage() {
               <div className="sticky top-28 border-l border-border pl-8">
                 <p className="text-[11px] tracking-[0.3em] uppercase text-muted mb-6">Summary</p>
                 <div className="space-y-3 text-sm">
+                  {form.selectedDate && <div className="flex justify-between"><span className="text-muted">Arrival</span><span className="text-dark">{form.selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>}
                   {form.eventType && <div className="flex justify-between"><span className="text-muted">Event</span><span className="text-dark">{form.eventType}</span></div>}
-                  {form.preferredSeason && <div className="flex justify-between"><span className="text-muted">Season</span><span className="text-dark">{form.preferredSeason}</span></div>}
-                  {form.preferredYear && <div className="flex justify-between"><span className="text-muted">Year</span><span className="text-dark">{form.preferredYear}</span></div>}
                   <div className="flex justify-between"><span className="text-muted">Guests</span><span className="text-dark">{form.guestCount}</span></div>
                   {form.duration && <div className="flex justify-between"><span className="text-muted">Duration</span><span className="text-dark capitalize">{durationOptions.find(d => d.value === form.duration)?.label}</span></div>}
                   {form.setting && <div className="flex justify-between"><span className="text-muted">Setting</span><span className="text-dark">{form.setting}</span></div>}
@@ -591,7 +601,7 @@ export default function BookingPage() {
                     <div className="flex justify-between text-xs mb-1"><span className="text-muted">{selectedChef.name}</span><span>${chefTotal.toLocaleString()}</span></div>
                   </>
                 )}
-                {form.boutiqueItems.length > 0 && (
+                {FEATURES.BOUTIQUE && form.boutiqueItems.length > 0 && (
                   <>
                     <div className="border-t border-border my-5" />
                     <p className="text-[10px] tracking-[0.2em] uppercase text-muted mb-2">Boutique</p>
@@ -606,14 +616,10 @@ export default function BookingPage() {
                   <>
                     <div className="border-t border-border my-5" />
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-dark">Estimated Total</span>
+                      <span className="text-sm text-dark">Total Due</span>
                       <span className="font-heading text-2xl text-dark">${subtotal.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
-                      <span className="text-sm text-accent font-medium">Deposit (25%)</span>
-                      <span className="font-heading text-lg text-accent">${deposit.toLocaleString()}</span>
-                    </div>
-                    <p className="text-[10px] text-muted mt-4 italic">Deposit secures your date. Balance due 30 days before event.</p>
+                    <p className="text-[10px] text-muted mt-4 italic">Charged in full at checkout. 50% refundable up to 60 days before arrival.</p>
                   </>
                 )}
               </div>

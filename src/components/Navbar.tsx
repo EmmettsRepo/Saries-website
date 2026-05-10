@@ -2,27 +2,37 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, User } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { logOut } from "@/lib/auth";
 import AuthModal from "@/components/AuthModal";
+import { FEATURES } from "@/lib/featureFlags";
 
-const navLinks = [
+const allNavLinks = [
   { label: "About", href: "/venue" },
   { label: "Experiences", href: "/experiences" },
   { label: "Gather", href: "/#events" },
-  { label: "Team", href: "/team" },
-  { label: "Explore", href: "/local" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Boutique", href: "/boutique" },
+  { label: "Boutique", href: "/boutique", flag: "BOUTIQUE" as const },
 ];
+
+const navLinks = allNavLinks.filter(
+  (link) => !link.flag || FEATURES[link.flag]
+);
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { user } = useAuth();
+  const pathname = usePathname();
+
+  // Pages with dark hero images where white nav text works
+  const darkHeroPages = ["/", "/venue", "/experiences", "/gallery", "/packages", "/booking"];
+  const hasDarkHero = darkHeroPages.includes(pathname);
+  const useDarkText = scrolled || !hasDarkHero;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -35,14 +45,14 @@ export default function Navbar() {
   }, [mobileOpen]);
 
   const linkClass = `text-[11px] tracking-[0.25em] uppercase font-light transition-colors duration-300 ${
-    scrolled ? "text-dark" : "text-white"
+    useDarkText ? "text-dark" : "text-white"
   } hover:opacity-60`;
 
   return (
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ${
-          scrolled
+          scrolled || !hasDarkHero
             ? "bg-warm-white/95 backdrop-blur-md shadow-sm py-4"
             : "bg-transparent py-6"
         }`}
@@ -50,7 +60,7 @@ export default function Navbar() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12 flex items-center justify-between relative">
           {/* Left nav (desktop) */}
           <div className="hidden lg:flex items-center gap-8">
-            {navLinks.slice(0, 4).map((link) => (
+            {navLinks.slice(0, Math.ceil(navLinks.length / 2)).map((link) => (
               <Link key={link.label} href={link.href} className={linkClass}>
                 {link.label}
               </Link>
@@ -61,7 +71,7 @@ export default function Navbar() {
           <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center">
             <span
               className={`font-heading text-[1.7rem] sm:text-[2rem] tracking-[0.35em] transition-colors duration-500 font-light ${
-                scrolled ? "text-dark" : "text-white"
+                useDarkText ? "text-dark" : "text-white"
               }`}
             >
               ANEW
@@ -70,7 +80,7 @@ export default function Navbar() {
 
           {/* Right nav (desktop) */}
           <div className="hidden lg:flex items-center gap-8">
-            {navLinks.slice(4).map((link) => (
+            {navLinks.slice(Math.ceil(navLinks.length / 2)).map((link) => (
               <Link key={link.label} href={link.href} className={linkClass}>
                 {link.label}
               </Link>
@@ -85,7 +95,7 @@ export default function Navbar() {
                 <Link
                   href="/booking"
                   className={`text-[11px] tracking-[0.25em] uppercase font-light border px-5 py-2.5 transition-all duration-300 ${
-                    scrolled
+                    useDarkText
                       ? "border-dark text-dark hover:bg-dark hover:text-white"
                       : "border-white text-white hover:bg-white hover:text-dark"
                   }`}
@@ -101,7 +111,7 @@ export default function Navbar() {
                 <Link
                   href="/booking"
                   className={`text-[11px] tracking-[0.25em] uppercase font-light border px-5 py-2.5 transition-all duration-300 ${
-                    scrolled
+                    useDarkText
                       ? "border-dark text-dark hover:bg-dark hover:text-white"
                       : "border-white text-white hover:bg-white hover:text-dark"
                   }`}
@@ -115,7 +125,7 @@ export default function Navbar() {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className={`lg:hidden transition-colors ${scrolled ? "text-dark" : "text-white"}`}
+            className={`lg:hidden transition-colors ${useDarkText ? "text-dark" : "text-white"}`}
             aria-label="Menu"
           >
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
