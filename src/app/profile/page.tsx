@@ -49,27 +49,35 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const p = await getUserProfile(user.uid);
-      if (p) setProfile({ firstName: p.firstName, lastName: p.lastName, email: p.email, phone: p.phone });
+      try {
+        const p = await getUserProfile(user.uid);
+        if (p) setProfile({ firstName: p.firstName, lastName: p.lastName, email: p.email, phone: p.phone });
+      } catch (err) { console.error("Failed to load profile:", err); }
 
-      const cb = await getUserChefBookings(user.uid);
-      setChefBookings(cb as BookingItem[]);
+      try {
+        const cb = await getUserChefBookings(user.uid);
+        setChefBookings(cb as BookingItem[]);
+      } catch (err) { console.error("Failed to load chef bookings:", err); }
 
-      // Get event bookings for this user's email
-      const bSnap = await getDocs(collection(db, "booking_inquiries"));
-      const userEmail = user.email?.toLowerCase() || "";
-      setEventBookings(
-        bSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as BookingItem))
-          .filter((b) => (b.email as string)?.toLowerCase() === userEmail)
-      );
+      try {
+        const bSnap = await getDocs(collection(db, "booking_inquiries"));
+        const userEmail = user.email?.toLowerCase() || "";
+        setEventBookings(
+          bSnap.docs
+            .map((d) => ({ id: d.id, ...d.data() } as BookingItem))
+            .filter((b) => (b.email as string)?.toLowerCase() === userEmail)
+        );
+      } catch (err) { console.error("Failed to load event bookings:", err); }
 
-      const tSnap = await getDocs(collection(db, "tour_requests"));
-      setTourRequests(
-        tSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as BookingItem))
-          .filter((t) => (t.email as string)?.toLowerCase() === userEmail)
-      );
+      try {
+        const tSnap = await getDocs(collection(db, "tour_requests"));
+        const userEmail = user.email?.toLowerCase() || "";
+        setTourRequests(
+          tSnap.docs
+            .map((d) => ({ id: d.id, ...d.data() } as BookingItem))
+            .filter((t) => (t.email as string)?.toLowerCase() === userEmail)
+        );
+      } catch (err) { console.error("Failed to load tour requests:", err); }
 
       setLoadingData(false);
     })();
@@ -147,22 +155,28 @@ export default function ProfilePage() {
   const upcomingEvents = [...eventBookings, ...chefBookings].filter((b) => (b.status as string) !== "completed" && (b.status as string) !== "cancelled");
 
   return (
-    <div className="pt-32 pb-28 px-6">
-      <div className="max-w-3xl mx-auto">
-        <AnimatedSection>
-          {/* Header */}
+    <div className="min-h-screen bg-cream">
+      {/* Account Header Banner */}
+      <div className="bg-dark pt-32 pb-16 px-6">
+        <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[11px] tracking-[0.4em] uppercase text-accent mb-2">Account</p>
-              <h1 className="font-heading text-3xl sm:text-4xl text-dark font-normal">
+              <h1 className="font-heading text-3xl sm:text-4xl text-white font-normal">
                 Welcome, {profile.firstName || "there"}
               </h1>
             </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-muted hover:text-dark transition-colors">
+            <button onClick={handleLogout} className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-white/50 hover:text-white transition-colors">
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
           </div>
-          <p className="text-muted text-sm mb-10">{user.email}</p>
+          <p className="text-white/40 text-sm">{user.email}</p>
+        </div>
+      </div>
+
+      <div className="px-6 pb-28 -mt-6">
+      <div className="max-w-3xl mx-auto bg-white border border-border p-8 sm:p-10 shadow-sm">
+        <AnimatedSection>
 
           {/* Tabs */}
           <div className="flex gap-0 border-b border-border mb-10">
@@ -189,15 +203,15 @@ export default function ProfilePage() {
             <div className="space-y-10">
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="border border-border p-5 text-center">
+                <div className="bg-cream border border-border p-5 text-center">
                   <p className="font-heading text-2xl text-dark">{totalBookings}</p>
                   <p className="text-xs text-muted mt-1">Total Bookings</p>
                 </div>
-                <div className="border border-border p-5 text-center">
+                <div className="bg-cream border border-border p-5 text-center">
                   <p className="font-heading text-2xl text-dark">{upcomingEvents.length}</p>
                   <p className="text-xs text-muted mt-1">Upcoming</p>
                 </div>
-                <div className="border border-border p-5 text-center">
+                <div className="bg-cream border border-border p-5 text-center">
                   <p className="font-heading text-2xl text-dark">{chefBookings.length}</p>
                   <p className="text-xs text-muted mt-1">Chef Bookings</p>
                 </div>
@@ -381,6 +395,7 @@ export default function ProfilePage() {
             </div>
           )}
         </AnimatedSection>
+      </div>
       </div>
     </div>
   );

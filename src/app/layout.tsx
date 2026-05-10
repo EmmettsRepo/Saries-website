@@ -5,12 +5,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthProvider from "@/components/AuthProvider";
 import SoundEngine from "@/components/SoundEngine";
-import FallingLeaves from "@/components/FallingLeaves";
 import ScrollProgress from "@/components/ScrollProgress";
 import PageTransition from "@/components/PageTransition";
 
-// TODO: Update to custom domain when ready
-const SITE_URL = "https://bakkers-website-847ba.web.app";
+const SITE_URL = "https://anewretreatandspa.com";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-heading",
@@ -61,7 +59,6 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SoundEngine />
-          <FallingLeaves />
           <ScrollProgress />
           <PageTransition />
           <Navbar />

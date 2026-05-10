@@ -14,11 +14,11 @@ export default function TermsPage() {
           <div className="space-y-8 text-sm text-muted leading-relaxed">
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">1. Booking & Payment</h2>
-              <p>Submitting a booking through our website requires a 25% non-refundable deposit paid via Stripe to secure your date. Your booking is confirmed once payment is successfully processed. The remaining 75% balance is due 30 days before your event.</p>
+              <p>Booking through our website requires payment in full via Stripe to secure your dates. Your reservation is confirmed once payment is successfully processed.</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>All prices are listed in USD and include applicable taxes unless stated otherwise</li>
                 <li>Payment is processed securely through Stripe. ANEW does not store your credit card information</li>
-                <li>A payment confirmation email will be sent upon successful deposit</li>
+                <li>A confirmation email will be sent upon successful payment</li>
                 <li>Final pricing is confirmed after consultation for custom packages</li>
               </ul>
             </section>
@@ -26,9 +26,8 @@ export default function TermsPage() {
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">2. Cancellation & Refund Policy</h2>
               <ul className="list-disc pl-5 space-y-1">
-                <li>The 25% deposit is non-refundable under all circumstances</li>
-                <li>Cancellations 60+ days before the event: 50% refund of the remaining balance</li>
-                <li>Cancellations within 60 days: non-refundable</li>
+                <li>Cancellations 60+ days before arrival: 50% refund of the total amount paid</li>
+                <li>Cancellations within 60 days of arrival: non-refundable</li>
                 <li>Date changes may be accommodated based on availability at no additional charge</li>
                 <li>Weather-related cancellations are handled on a case-by-case basis</li>
                 <li>Refunds are processed to the original payment method within 5-10 business days</li>
@@ -37,7 +36,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">3. Disputes</h2>
-              <p>If you believe a charge is incorrect, contact us at <a href="mailto:info@anew-estate.com" className="text-dark underline hover:text-accent">info@anew-estate.com</a> before filing a dispute with your bank. We are committed to resolving billing issues promptly and directly.</p>
+              <p>If you believe a charge is incorrect, contact us at <a href="mailto:hello@anewretreatandspa.com" className="text-dark underline hover:text-accent">hello@anewretreatandspa.com</a> before filing a dispute with your bank. We are committed to resolving billing issues promptly and directly.</p>
             </section>
 
             <section>
@@ -79,7 +78,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">10. Contact</h2>
-              <p>For questions about these terms, contact us at <a href="mailto:info@anew-estate.com" className="text-dark underline hover:text-accent">info@anew-estate.com</a>.</p>
+              <p>For questions about these terms, contact us at <a href="mailto:hello@anewretreatandspa.com" className="text-dark underline hover:text-accent">hello@anewretreatandspa.com</a>.</p>
             </section>
           </div>
         </AnimatedSection>

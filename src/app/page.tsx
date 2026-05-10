@@ -9,6 +9,7 @@ import AnimatedSection from "@/components/AnimatedSection";
 import Tilt3D from "@/components/Tilt3D";
 import HandDrawnDivider from "@/components/HandDrawnDivider";
 import CornerAccent from "@/components/CornerAccent";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
 import { submitTourRequest } from "@/lib/submissions";
 import { useBotGuard } from "@/components/BotGuard";
 
@@ -52,7 +53,7 @@ export default function HomePage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
         <div className="relative z-10 text-center text-white px-6 max-w-5xl">
           <motion.p
             initial={{ opacity: 0 }}
@@ -76,9 +77,17 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 1 }}
-            className="text-white/50 text-sm sm:text-base mb-10 max-w-lg mx-auto leading-relaxed"
+            className="text-white/50 text-sm sm:text-base mb-2 max-w-lg mx-auto leading-relaxed"
           >
             Retreats, weddings, wellness, and gatherings — minutes from Seattle.
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 1.1 }}
+            className="text-white/40 text-xs tracking-[0.2em] uppercase mt-2 mb-8"
+          >
+            Starting at $3,000 / night
           </motion.p>
           <motion.div
             initial={{ opacity: 0 }}
@@ -97,6 +106,12 @@ export default function HomePage() {
               className="text-[11px] tracking-[0.3em] uppercase text-white/70 hover:text-white transition-colors duration-300"
             >
               Explore the Estate
+            </Link>
+            <Link
+              href="/#contact"
+              className="text-[11px] tracking-[0.3em] uppercase text-white/70 hover:text-white transition-colors duration-300"
+            >
+              Schedule a Tour
             </Link>
           </motion.div>
         </div>
@@ -232,8 +247,8 @@ export default function HomePage() {
             </h2>
           </AnimatedSection>
         </div>
-        <div className="overflow-x-auto pb-4 scrollbar-hide">
-          <div className="flex gap-5 px-6 lg:px-12 min-w-max">
+        <div className="px-6 lg:px-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[
               { img: "/images/master-bedroom.jpg", name: "Master Suite", desc: "Reclaimed timber king bed with backlit headboard and tile accent wall" },
               { img: "/images/bunkbeds.jpg", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, sheepskin rug, and reclaimed wood throughout" },
@@ -244,7 +259,7 @@ export default function HomePage() {
               { img: "/images/hallway-barndoors.webp", name: "Gallery Hallway", desc: "Glass railings, barn doors, and forest views at every turn" },
             ].map((room, i) => (
               <AnimatedSection key={room.name} delay={i * 0.08}>
-                <div className="w-[320px] sm:w-[380px] group cursor-pointer card-3d">
+                <div className="w-full group cursor-pointer card-3d">
                   <div className="relative aspect-[3/4] mb-5 overflow-hidden">
                     <Image
                       src={room.img}
@@ -317,7 +332,7 @@ export default function HomePage() {
             </p>
             <div className="flex items-center gap-6">
               <Link
-                href="/chefs"
+                href="/experiences"
                 className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-6 py-3 hover:bg-accent transition-colors duration-500"
               >
                 Book a Chef
@@ -376,6 +391,22 @@ export default function HomePage() {
               </AnimatedSection>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ===== AVAILABILITY ===== */}
+      <section className="py-28 sm:py-36 px-6">
+        <div className="max-w-3xl mx-auto">
+          <AnimatedSection className="text-center mb-12">
+            <p className="text-[11px] tracking-[0.4em] uppercase text-accent mb-4">Availability</p>
+            <h2 className="font-heading text-3xl sm:text-4xl text-dark font-normal mb-4">
+              Find Your Date
+            </h2>
+            <p className="text-muted text-sm">Select a date to begin planning your event</p>
+          </AnimatedSection>
+          <AnimatedSection>
+            <AvailabilityCalendar />
+          </AnimatedSection>
         </div>
       </section>
 
@@ -483,9 +514,9 @@ export default function HomePage() {
               Nothing compares to experiencing ANEW in person. Walk the grounds, feel the atmosphere, and envision your celebration.
             </p>
             <div className="space-y-3 text-muted text-sm">
-              <p>16527 74th Ave NE, Kenmore, WA 98028</p>
-              <p>(425) 555-0199</p>
-              <p>info@anew-estate.com</p>
+              <p>Kenmore, WA</p>
+              <p><a href="tel:+12067558541" className="hover:text-accent transition-colors">(206) 755-8541</a></p>
+              <p><a href="mailto:hello@anewretreatandspa.com" className="hover:text-accent transition-colors">hello@anewretreatandspa.com</a></p>
             </div>
           </AnimatedSection>
 
