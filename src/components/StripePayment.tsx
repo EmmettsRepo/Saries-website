@@ -85,7 +85,7 @@ function CheckoutForm({
         <Lock className="w-3 h-3" />
         {processing
           ? "Processing..."
-          : `Pay $${amount.toLocaleString()} Deposit`}
+          : `Pay $${amount.toLocaleString()}`}
       </button>
 
       <p className="text-[10px] text-muted text-center flex items-center justify-center gap-1">
@@ -142,19 +142,19 @@ export default function StripePayment({
         <div className="border border-border p-6 bg-cream/30">
           <div className="flex justify-between items-center mb-4">
             <p className="text-[11px] tracking-[0.2em] uppercase text-muted">
-              Deposit Required
+              Total Due
             </p>
             <span className="font-heading text-2xl text-dark">
               ${amount.toLocaleString()}
             </span>
           </div>
           <p className="text-xs text-muted leading-relaxed mb-1">
-            A 25% non-refundable deposit secures your date. The remaining
-            balance is due 30 days before your event.
+            Pay in full to lock in your reservation. You&apos;ll receive a
+            confirmation email with all the details.
           </p>
           <p className="text-xs text-muted leading-relaxed">
-            Cancellations 60+ days out receive a 50% refund of the remaining
-            balance.
+            Cancellations 60+ days before arrival receive a 50% refund. Inside
+            60 days the booking is non-refundable.
           </p>
         </div>
 

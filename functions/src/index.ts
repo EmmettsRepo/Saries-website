@@ -9,6 +9,7 @@ const db = admin.firestore();
 
 const stripeSecretKey = defineString("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineString("STRIPE_WEBHOOK_SECRET");
+const hospitableApiToken = defineString("HOSPITABLE_API_TOKEN");
 
 const corsHandler = cors({ origin: true });
 
@@ -136,3 +137,65 @@ export const stripeWebhook = onRequest(
     res.status(200).json({ received: true });
   }
 );
+
+/**
+ * Hospitable availability proxy.
+ * Hospitable is the central booking hub syncing Airbnb, VRBO, and direct.
+ * Forwards property calendar requests with the server-side PAT.
+ * When HOSPITABLE_API_TOKEN is unset, returns 503 so the client falls back to mock.
+ */
+export const getAvailability = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "GET") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const token = hospitableApiToken.value();
+    if (!token) {
+      res.status(503).json({ error: "Hospitable not configured" });
+      return;
+    }
+
+    const propertyId = String(req.query.propertyId || "");
+    const from = String(req.query.from || "");
+    const to = String(req.query.to || "");
+    if (!propertyId || !from || !to) {
+      res.status(400).json({ error: "Missing propertyId, from, or to" });
+      return;
+    }
+
+    try {
+      const url = `https://public.api.hospitable.com/v2/calendar?property_id=${propertyId}&start_date=${from}&end_date=${to}`;
+      const r = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (!r.ok) {
+        const text = await r.text();
+        console.error("Hospitable error:", r.status, text);
+        res.status(502).json({ error: "Hospitable API error" });
+        return;
+      }
+      const json = await r.json() as { data?: Array<{ date: string; available?: boolean; status?: string; price?: { amount?: number }; min_nights?: number }> };
+      const days = (json.data || []).map((d) => {
+        let status: "available" | "limited" | "booked";
+        if (d.available === false || d.status === "reserved" || d.status === "unavailable") status = "booked";
+        else if (d.status === "available" || d.available === true) status = "available";
+        else status = "limited";
+        return {
+          date: d.date,
+          status,
+          price: d.price?.amount,
+          minNights: d.min_nights,
+        };
+      });
+      res.status(200).json({ days });
+    } catch (err) {
+      console.error("Hospitable fetch failed:", err);
+      res.status(500).json({ error: "Availability fetch failed" });
+    }
+  });
+});
