@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, Minus, Plus, CheckCircle2 } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -79,13 +80,27 @@ interface FormData {
   guestName: string; guestEmail: string; guestPhone: string;
 }
 
-export default function BookingPage() {
+function BookingPageInner() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [authOpen, setAuthOpen] = useState(false);
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [step, setStep] = useState(0);
 
   useEffect(() => { getChefs().then(setChefs); }, []);
+
+  // Pre-select date from ?date=YYYY-MM-DD query param (homepage calendar deep-link)
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const [y, m, d] = dateParam.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
+      if (!isNaN(date.getTime())) {
+        setForm((prev) => prev.selectedDate ? prev : { ...prev, selectedDate: date });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -630,5 +645,17 @@ export default function BookingPage() {
 
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <p className="text-muted text-sm">Loading...</p>
+      </div>
+    }>
+      <BookingPageInner />
+    </Suspense>
   );
 }

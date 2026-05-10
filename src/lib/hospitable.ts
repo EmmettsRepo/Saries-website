@@ -50,8 +50,9 @@ function generateMockMonth(year: number, month: number): CalendarDay[] {
   const out: CalendarDay[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
+    const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     out.push({
-      date: date.toISOString().split("T")[0],
+      date: dateKey,
       status: mockStatus(date),
     });
   }
@@ -78,8 +79,9 @@ export async function getAvailability(
   }
 
   try {
-    const fromDate = new Date(year, month, 1).toISOString().split("T")[0];
-    const toDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const fromDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const toDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const res = await fetch(
       `${FUNCTIONS_URL}/getAvailability?propertyId=${PROPERTY_ID}&from=${fromDate}&to=${toDate}`
     );

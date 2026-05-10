@@ -9,6 +9,11 @@ import {
   isMockMode,
 } from "@/lib/hospitable";
 
+/** Format a Date as yyyy-mm-dd in local time (timezone-safe). */
+function dateKeyFor(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 const STATUS_COLORS: Record<DayStatus, string> = {
   available: "#22c55e",
   limited: "#f59e0b",
@@ -86,7 +91,9 @@ export default function AvailabilityCalendar({
     }
   };
 
-  const selectedKey = selectedDate ? selectedDate.toISOString().split("T")[0] : null;
+  const selectedKey = selectedDate
+    ? dateKeyFor(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+    : null;
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -107,7 +114,7 @@ export default function AvailabilityCalendar({
 
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(viewYear, viewMonth, d);
-      const dateKey = date.toISOString().split("T")[0];
+      const dateKey = dateKeyFor(viewYear, viewMonth, d);
       const data = availability[dateKey];
       const status: DayStatus = data?.status ?? (date < today ? "past" : "available");
       const isToday =

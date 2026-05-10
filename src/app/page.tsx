@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -15,6 +16,7 @@ import { useBotGuard } from "@/components/BotGuard";
 
 
 export default function HomePage() {
+  const router = useRouter();
   const [tourForm, setTourForm] = useState({ firstName: "", lastName: "", email: "", phone: "", date: "", message: "" });
   const [tourSubmitted, setTourSubmitted] = useState(false);
   const [tourSubmitting, setTourSubmitting] = useState(false);
@@ -402,10 +404,17 @@ export default function HomePage() {
             <h2 className="font-heading text-3xl sm:text-4xl text-dark font-normal mb-4">
               Find Your Date
             </h2>
-            <p className="text-muted text-sm">Select a date to begin planning your event</p>
+            <p className="text-muted text-sm">Click a date to begin planning your event</p>
           </AnimatedSection>
           <AnimatedSection>
-            <AvailabilityCalendar />
+            <AvailabilityCalendar
+              onSelectDate={(date) => {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                router.push(`/booking?date=${y}-${m}-${d}`);
+              }}
+            />
           </AnimatedSection>
         </div>
       </section>
