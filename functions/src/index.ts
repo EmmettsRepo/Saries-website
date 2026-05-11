@@ -114,20 +114,48 @@ export const stripeWebhook = onRequest(
           .limit(1)
           .get();
 
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          await doc.ref.update({
+        let doc: FirebaseFirestore.DocumentReference;
+        let bookingData: FirebaseFirestore.DocumentData;
+
+        if (snapshot.empty) {
+          // Lost-booking recovery: customer paid but their browser died before
+          // submitBookingInquiry wrote to Firestore. Reconstruct from PI metadata.
+          console.warn(`No booking found for ${pi.id} — creating recovery record from PI metadata`);
+          const recovery = {
+            type: "booking",
+            status: "new",
+            email: pi.metadata.customerEmail || pi.receipt_email || "",
+            displayName: pi.metadata.customerName || "Recovered Booking",
+            eventType: pi.metadata.eventType || "",
+            guestCount: Number(pi.metadata.guestCount) || 0,
+            selectedPackage: pi.metadata.package || "",
+            selectedDate: pi.metadata.arrivalDate || null,
+            paymentIntentId: pi.id,
+            paymentStatus: "paid",
+            paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+            stripeAmount: pi.amount,
+            estimatedTotal: pi.amount / 100,
+            amountPaid: pi.amount / 100,
+            recoveredFromWebhook: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+          doc = await db.collection("booking_inquiries").add(recovery);
+          bookingData = recovery;
+        } else {
+          doc = snapshot.docs[0].ref;
+          await doc.update({
             paymentStatus: "paid",
             paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
             stripeAmount: pi.amount,
           });
+          bookingData = snapshot.docs[0].data();
+        }
 
-          // Push to Hospitable so Airbnb/VRBO calendars block this date
-          try {
-            await pushReservationToHospitable(doc.id, doc.data());
-          } catch (err) {
-            console.error("Hospitable push failed (will retry manually):", err);
-          }
+        // Push to Hospitable so Airbnb/VRBO calendars block this date
+        try {
+          await pushReservationToHospitable(doc.id, bookingData);
+        } catch (err) {
+          console.error("Hospitable push failed (will retry manually):", err);
         }
         break;
       }

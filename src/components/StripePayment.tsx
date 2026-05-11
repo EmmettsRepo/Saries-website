@@ -14,7 +14,6 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-// TODO: Update to your deployed Cloud Function URL
 const FUNCTIONS_URL =
   process.env.NEXT_PUBLIC_FUNCTIONS_URL ||
   "https://us-central1-bakkers-website-847ba.cloudfunctions.net";

@@ -20,7 +20,7 @@ const experiences = [
     title: "Private Chef Experience",
     tagline: "Savor",
     desc: "Book one of our resident chefs for an intimate, multi-course dinner crafted from locally sourced ingredients. Dine fireside, in the Grand Hall, or under the stars.",
-    features: ["Choice of 4 resident chefs", "Seasonal tasting menu", "Wine pairing available", "Indoor or outdoor seating"],
+    features: ["Curated chef selection", "Seasonal tasting menu", "Wine pairing available", "Indoor or outdoor seating"],
     price: "From $125/person",
     image: "/images/catering-spread.jpg",
   },
