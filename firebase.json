@@ -4,7 +4,7 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs20"
+    "runtime": "nodejs22"
   },
   "hosting": {
     "site": "bakkers-website-847ba",

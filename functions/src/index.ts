@@ -10,9 +10,32 @@ const db = admin.firestore();
 const stripeSecretKey = defineString("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineString("STRIPE_WEBHOOK_SECRET");
 const hospitableApiToken = defineString("HOSPITABLE_API_TOKEN");
+const hospitablePropertyId = defineString("HOSPITABLE_PROPERTY_ID");
+const hospitableWebhookSecret = defineString("HOSPITABLE_WEBHOOK_SECRET");
 
 const corsHandler = cors({ origin: true });
 
+const ADMIN_EMAILS = new Set([
+  "emmettg@griffithind.com",
+  "bakkers4640@gmail.com",
+]);
+
+/** Verify the request is from an authorized admin via Firebase ID token. */
+async function requireAdmin(req: { headers: Record<string, string | string[] | undefined> }): Promise<string> {
+  const authHeader = req.headers.authorization;
+  const token = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+  if (!token) throw new Error("Missing Authorization header");
+  const decoded = await admin.auth().verifyIdToken(token);
+  const email = (decoded.email || "").toLowerCase();
+  if (!ADMIN_EMAILS.has(email)) throw new Error("Not authorized");
+  return email;
+}
+
+// ============================================================================
+// STRIPE: Create Payment Intent
+// ============================================================================
 export const createPaymentIntent = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== "POST") {
@@ -22,14 +45,12 @@ export const createPaymentIntent = onRequest((req, res) => {
 
     try {
       const stripe = new Stripe(stripeSecretKey.value());
-
       const { amount, currency = "usd", metadata } = req.body;
 
       if (!amount || typeof amount !== "number" || amount < 100) {
         res.status(400).json({ error: "Invalid amount (minimum $1.00)" });
         return;
       }
-
       // Cap at $25,000 to prevent abuse
       if (amount > 2500000) {
         res.status(400).json({ error: "Amount exceeds maximum" });
@@ -37,12 +58,9 @@ export const createPaymentIntent = onRequest((req, res) => {
       }
 
       const paymentIntent = await stripe.paymentIntents.create({
-        amount, // in cents
+        amount,
         currency,
-        metadata: {
-          ...metadata,
-          source: "anew-booking",
-        },
+        metadata: { ...metadata, source: "anew-booking" },
       });
 
       res.status(200).json({
@@ -57,11 +75,9 @@ export const createPaymentIntent = onRequest((req, res) => {
   });
 });
 
-/**
- * Stripe webhook — verifies payment events server-side.
- * Set up in Stripe Dashboard > Developers > Webhooks
- * Listen for: payment_intent.succeeded, payment_intent.payment_failed
- */
+// ============================================================================
+// STRIPE: Webhook — handles payment events, pushes to Hospitable
+// ============================================================================
 export const stripeWebhook = onRequest(
   { invoker: "public" },
   async (req, res) => {
@@ -72,7 +88,6 @@ export const stripeWebhook = onRequest(
 
     const stripe = new Stripe(stripeSecretKey.value());
     const sig = req.headers["stripe-signature"];
-
     if (!sig) {
       res.status(400).send("Missing stripe-signature header");
       return;
@@ -80,11 +95,7 @@ export const stripeWebhook = onRequest(
 
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(
-        req.rawBody,
-        sig,
-        stripeWebhookSecret.value()
-      );
+      event = stripe.webhooks.constructEvent(req.rawBody, sig, stripeWebhookSecret.value());
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error("Webhook signature verification failed:", msg);
@@ -97,7 +108,6 @@ export const stripeWebhook = onRequest(
         const pi = event.data.object as Stripe.PaymentIntent;
         console.log(`Payment succeeded: ${pi.id} ($${pi.amount / 100})`);
 
-        // Find and update matching booking inquiry
         const snapshot = await db
           .collection("booking_inquiries")
           .where("paymentIntentId", "==", pi.id)
@@ -105,27 +115,50 @@ export const stripeWebhook = onRequest(
           .get();
 
         if (!snapshot.empty) {
-          await snapshot.docs[0].ref.update({
-            paymentStatus: "deposit_paid",
+          const doc = snapshot.docs[0];
+          await doc.ref.update({
+            paymentStatus: "paid",
             paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
             stripeAmount: pi.amount,
           });
+
+          // Push to Hospitable so Airbnb/VRBO calendars block this date
+          try {
+            await pushReservationToHospitable(doc.id, doc.data());
+          } catch (err) {
+            console.error("Hospitable push failed (will retry manually):", err);
+          }
         }
         break;
       }
       case "payment_intent.payment_failed": {
         const pi = event.data.object as Stripe.PaymentIntent;
         console.log(`Payment failed: ${pi.id}`);
-
         const snapshot = await db
           .collection("booking_inquiries")
           .where("paymentIntentId", "==", pi.id)
           .limit(1)
           .get();
-
+        if (!snapshot.empty) {
+          await snapshot.docs[0].ref.update({ paymentStatus: "failed" });
+        }
+        break;
+      }
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+        if (!pi) break;
+        console.log(`Charge refunded: ${charge.id} (PI ${pi}, $${charge.amount_refunded / 100})`);
+        const snapshot = await db
+          .collection("booking_inquiries")
+          .where("paymentIntentId", "==", pi)
+          .limit(1)
+          .get();
         if (!snapshot.empty) {
           await snapshot.docs[0].ref.update({
-            paymentStatus: "failed",
+            paymentStatus: charge.amount_refunded === charge.amount ? "refunded" : "partially_refunded",
+            refundedAmount: charge.amount_refunded,
+            refundedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         }
         break;
@@ -138,12 +171,81 @@ export const stripeWebhook = onRequest(
   }
 );
 
-/**
- * Hospitable availability proxy.
- * Hospitable is the central booking hub syncing Airbnb, VRBO, and direct.
- * Forwards property calendar requests with the server-side PAT.
- * When HOSPITABLE_API_TOKEN is unset, returns 503 so the client falls back to mock.
- */
+// ============================================================================
+// STRIPE: Refund (admin only)
+// ============================================================================
+export const refundBooking = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      await requireAdmin(req);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unauthorized";
+      res.status(401).json({ error: msg });
+      return;
+    }
+
+    try {
+      const { bookingId, refundType = "half" } = req.body as {
+        bookingId?: string;
+        refundType?: "half" | "full";
+      };
+      if (!bookingId) {
+        res.status(400).json({ error: "Missing bookingId" });
+        return;
+      }
+
+      const docRef = db.collection("booking_inquiries").doc(bookingId);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        res.status(404).json({ error: "Booking not found" });
+        return;
+      }
+      const data = doc.data() as Record<string, unknown>;
+      const pi = data.paymentIntentId as string | undefined;
+      const stripeAmount = data.stripeAmount as number | undefined;
+      if (!pi || !stripeAmount) {
+        res.status(400).json({ error: "Booking has no associated payment" });
+        return;
+      }
+
+      const refundAmount = refundType === "full" ? stripeAmount : Math.floor(stripeAmount / 2);
+      const stripe = new Stripe(stripeSecretKey.value());
+      const refund = await stripe.refunds.create({
+        payment_intent: pi,
+        amount: refundAmount,
+        metadata: { bookingId, refundType, source: "admin-dashboard" },
+      });
+
+      // Webhook charge.refunded will update Firestore, but mark optimistically
+      await docRef.update({
+        paymentStatus: refundType === "full" ? "refunded" : "partially_refunded",
+        refundedAmount: refundAmount,
+        refundedAt: admin.firestore.FieldValue.serverTimestamp(),
+        refundId: refund.id,
+      });
+
+      res.status(200).json({
+        success: true,
+        refundId: refund.id,
+        amount: refundAmount,
+        status: refund.status,
+      });
+    } catch (err) {
+      console.error("Refund failed:", err);
+      const message = err instanceof Error ? err.message : "Refund failed";
+      res.status(500).json({ error: message });
+    }
+  });
+});
+
+// ============================================================================
+// HOSPITABLE: Availability proxy (read)
+// ============================================================================
 export const getAvailability = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== "GET") {
@@ -168,10 +270,7 @@ export const getAvailability = onRequest((req, res) => {
     try {
       const url = `https://public.api.hospitable.com/v2/calendar?property_id=${propertyId}&start_date=${from}&end_date=${to}`;
       const r = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
       if (!r.ok) {
         const text = await r.text();
@@ -179,18 +278,18 @@ export const getAvailability = onRequest((req, res) => {
         res.status(502).json({ error: "Hospitable API error" });
         return;
       }
-      const json = await r.json() as { data?: Array<{ date: string; available?: boolean; status?: string; price?: { amount?: number }; min_nights?: number }> };
+      const json = await r.json() as {
+        data?: Array<{
+          date: string; available?: boolean; status?: string;
+          price?: { amount?: number }; min_nights?: number;
+        }>;
+      };
       const days = (json.data || []).map((d) => {
         let status: "available" | "limited" | "booked";
         if (d.available === false || d.status === "reserved" || d.status === "unavailable") status = "booked";
         else if (d.status === "available" || d.available === true) status = "available";
         else status = "limited";
-        return {
-          date: d.date,
-          status,
-          price: d.price?.amount,
-          minNights: d.min_nights,
-        };
+        return { date: d.date, status, price: d.price?.amount, minNights: d.min_nights };
       });
       res.status(200).json({ days });
     } catch (err) {
@@ -199,3 +298,185 @@ export const getAvailability = onRequest((req, res) => {
     }
   });
 });
+
+// ============================================================================
+// HOSPITABLE: Push reservation (called from stripeWebhook on payment success)
+// ============================================================================
+async function pushReservationToHospitable(
+  bookingId: string,
+  booking: FirebaseFirestore.DocumentData
+): Promise<void> {
+  const token = hospitableApiToken.value();
+  const propertyId = hospitablePropertyId.value();
+  if (!token || !propertyId) {
+    console.log("Hospitable not configured — skipping reservation push");
+    return;
+  }
+
+  const arrival = booking.selectedDate as string | undefined;
+  if (!arrival) {
+    console.warn(`Booking ${bookingId} has no selectedDate, skipping Hospitable push`);
+    return;
+  }
+
+  // Default to 1-night stay; admin can extend in Hospitable dashboard
+  const checkIn = new Date(arrival);
+  const checkOut = new Date(checkIn);
+  checkOut.setDate(checkOut.getDate() + 1);
+
+  const guestName = (booking.displayName as string) || (booking.guestName as string) || "Guest";
+  const guestEmail = (booking.email as string) || "";
+  const guestPhone = (booking.phone as string) || (booking.guestPhone as string) || "";
+  const guestCount = (booking.guestCount as number) || 2;
+
+  const payload = {
+    property_id: propertyId,
+    check_in: checkIn.toISOString().split("T")[0],
+    check_out: checkOut.toISOString().split("T")[0],
+    guest: {
+      first_name: guestName.split(" ")[0] || "Guest",
+      last_name: guestName.split(" ").slice(1).join(" ") || "—",
+      email: guestEmail,
+      phone: guestPhone,
+    },
+    number_of_guests: guestCount,
+    source: "direct",
+    notes: `Booked via anewretreatandspa.com. Booking ID: ${bookingId}. Event: ${booking.eventType || "stay"}. Paid: $${((booking.stripeAmount as number) || 0) / 100}.`,
+    confirmation_status: "confirmed",
+  };
+
+  const r = await fetch("https://public.api.hospitable.com/v2/reservations", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Hospitable ${r.status}: ${text}`);
+  }
+
+  const result = await r.json() as { data?: { id?: string; code?: string } };
+  const reservationId = result.data?.id || result.data?.code;
+  await db.collection("booking_inquiries").doc(bookingId).update({
+    hospitableReservationId: reservationId,
+    hospitableSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  console.log(`Hospitable reservation created: ${reservationId} for booking ${bookingId}`);
+}
+
+// ============================================================================
+// HOSPITABLE: Incoming webhook (when Airbnb/VRBO bookings happen directly)
+// ============================================================================
+export const hospitableWebhook = onRequest(
+  { invoker: "public" },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    // Verify webhook signature (Hospitable signs with HMAC-SHA256)
+    const secret = hospitableWebhookSecret.value();
+    if (secret) {
+      const signature = req.headers["x-hospitable-signature"];
+      if (!signature || typeof signature !== "string") {
+        res.status(401).send("Missing signature");
+        return;
+      }
+      const crypto = await import("crypto");
+      const expected = crypto
+        .createHmac("sha256", secret)
+        .update(req.rawBody)
+        .digest("hex");
+      if (signature !== expected) {
+        console.error("Hospitable webhook signature mismatch");
+        res.status(401).send("Invalid signature");
+        return;
+      }
+    }
+
+    const event = req.body as {
+      event?: string;
+      data?: {
+        id?: string;
+        property_id?: string;
+        check_in?: string;
+        check_out?: string;
+        status?: string;
+        source?: string;
+        guest?: { first_name?: string; last_name?: string; email?: string; phone?: string };
+        number_of_guests?: number;
+        total?: number;
+      };
+    };
+
+    if (!event.event || !event.data) {
+      res.status(400).send("Invalid payload");
+      return;
+    }
+
+    console.log(`Hospitable event: ${event.event}`);
+
+    try {
+      switch (event.event) {
+        case "reservation.created":
+        case "reservation.confirmed": {
+          const d = event.data;
+          // Only record bookings that came from external channels (Airbnb, VRBO, etc.)
+          // Our own direct bookings already exist in booking_inquiries.
+          if (d.source && d.source !== "direct") {
+            await db.collection("external_bookings").doc(d.id || "").set({
+              source: d.source,
+              hospitableReservationId: d.id,
+              propertyId: d.property_id,
+              checkIn: d.check_in,
+              checkOut: d.check_out,
+              status: d.status,
+              guestName: `${d.guest?.first_name || ""} ${d.guest?.last_name || ""}`.trim(),
+              guestEmail: d.guest?.email || "",
+              guestPhone: d.guest?.phone || "",
+              guestCount: d.number_of_guests,
+              total: d.total,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              type: "external_booking",
+            }, { merge: true });
+          }
+          break;
+        }
+        case "reservation.cancelled": {
+          const d = event.data;
+          // Find the matching booking — could be in either collection
+          const snap = await db
+            .collection("booking_inquiries")
+            .where("hospitableReservationId", "==", d.id)
+            .limit(1)
+            .get();
+          if (!snap.empty) {
+            await snap.docs[0].ref.update({
+              status: "cancelled",
+              cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          } else {
+            await db.collection("external_bookings").doc(d.id || "").set({
+              status: "cancelled",
+              cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+          }
+          break;
+        }
+        default:
+          console.log(`Unhandled Hospitable event: ${event.event}`);
+      }
+
+      res.status(200).json({ received: true });
+    } catch (err) {
+      console.error("Hospitable webhook error:", err);
+      res.status(500).send("Webhook processing failed");
+    }
+  }
+);
