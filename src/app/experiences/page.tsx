@@ -11,8 +11,8 @@ const experiences = [
   {
     title: "Woodland Wellness Retreat",
     tagline: "Restore",
-    desc: "A curated day of guided meditation, forest bathing, yoga among the trees, and restorative bodywork. Designed for groups or individuals seeking stillness and renewal.",
-    features: ["Guided forest meditation", "Outdoor yoga session", "Aromatherapy & sound healing", "Farm-to-table wellness lunch"],
+    desc: "A curated day of guided meditation with crystal sound bowls, forest bathing, yoga among the trees, and restorative bodywork. Designed for groups or individuals seeking stillness and renewal.",
+    features: ["Guided forest meditation with crystal sound bowls", "Outdoor yoga session", "Aromatherapy & sound healing", "Farm-to-table wellness lunch"],
     price: "From $250/person",
     image: "/images/creek.jpg",
   },

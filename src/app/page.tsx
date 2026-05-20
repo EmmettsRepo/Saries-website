@@ -82,7 +82,7 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.5, delay: 0.3 }}
-            className="text-[12px] tracking-[0.6em] uppercase mb-8 text-white/60"
+            className="text-[10px] sm:text-[12px] tracking-[0.3em] sm:tracking-[0.6em] uppercase mb-8 text-white/60"
           >
             Pacific Northwest Retreat &amp; Spa
           </motion.p>
@@ -110,7 +110,7 @@ export default function HomePage() {
             transition={{ duration: 1, delay: 1.1 }}
             className="text-white/40 text-xs tracking-[0.2em] uppercase mt-2 mb-8"
           >
-            Starting at $3,000 / night
+            Starting at $5,500 / night
           </motion.p>
           <motion.div
             initial={{ opacity: 0 }}
@@ -154,16 +154,16 @@ export default function HomePage() {
           <AnimatedSection>
             <HandDrawnDivider variant="botanical" className="mb-10" />
             <h2 className="font-heading text-3xl sm:text-4xl md:text-[2.75rem] leading-[1.35] text-dark mb-10 font-normal">
-              ANEW is a 5,800 sq ft retreat and spa on two woodland acres with a babbling brook that runs throughout the private estate — a place for weddings, wellness retreats, corporate escapes, and celebrations.
+              ANEW is a 5,800 sq ft retreat and spa on two woodland acres with a babbling brook that runs throughout the private estate — a place for private stays, weddings, wellness retreats, corporate escapes, and celebrations.
             </h2>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-[11px] tracking-[0.3em] uppercase text-muted">
+            <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-3 text-[10px] sm:text-[11px] tracking-[0.25em] sm:tracking-[0.3em] uppercase text-muted">
               <span>7 bedrooms</span>
               <span className="text-accent">·</span>
               <span>White sandy beach</span>
               <span className="text-accent">·</span>
               <span>Private stream</span>
               <span className="text-accent">·</span>
-              <span>Spa</span>
+              <span>Relaxing spa</span>
               <span className="text-accent">·</span>
               <span>Wellness retreats</span>
               <span className="text-accent">·</span>
@@ -172,6 +172,8 @@ export default function HomePage() {
               <span>Thermal pools</span>
               <span className="text-accent">·</span>
               <span>Wet &amp; dry sauna</span>
+              <span className="text-accent">·</span>
+              <span>Elevated gym</span>
             </div>
           </AnimatedSection>
         </div>
@@ -196,7 +198,7 @@ export default function HomePage() {
               Rustic Grandeur,<br />Modern Comfort
             </h3>
             <p className="text-muted leading-relaxed mb-6 text-[15px]">
-              Exposed timber beams, a hand-forged iron chandelier, and floor-to-ceiling windows that frame the forest. The Grand Hall seats eighty for a dinner you&apos;ll never forget — or opens wide for dancing beneath the stars.
+              Exposed timber beams, a hand-forged iron chandelier, and floor-to-ceiling windows that frame the forest. The Grand Hall seats many for a dinner you&apos;ll never forget — or opens wide for dancing beneath the stars.
             </p>
             <p className="text-muted leading-relaxed mb-8 text-[15px]">
               Every corner of ANEW tells a story through weathered barn wood, forged iron, and the quiet presence of old-growth timber.
@@ -238,7 +240,7 @@ export default function HomePage() {
               Celebrations<br />Under the Canopy
             </h3>
             <p className="text-muted leading-relaxed mb-6 text-[15px]">
-              From grand weddings on the ceremony lawn to intimate dinners by the fire pit, ANEW adapts to your vision. String lights drape the courtyard, the creek provides a natural soundtrack, and deer wander the grounds at dusk.
+              From private stays to grand weddings on the ceremony lawn, white sandy beach, in the forest, to intimate dinners by the copper fire bowl, ANEW adapts to your vision. String lights drape the courtyard, the stream provides a natural soundtrack, and deer wander the grounds at dusk.
             </p>
             <p className="text-muted leading-relaxed mb-8 text-[15px]">
               Weddings, elopements, corporate retreats, birthday celebrations, wellness retreats, and private dinners — every gathering finds its perfect setting here.
@@ -282,11 +284,11 @@ export default function HomePage() {
               { img: "/images/bedroom-garden.webp", name: "Garden Suite", desc: "King bed with French doors opening to the garden patio and a private en-suite rain shower", position: "calc(100% + 50px) center" },
               { img: "/images/master-bedroom.jpg", name: "Master Suite", desc: "Reclaimed king bed, vaulted beam ceiling, and warm bedside lighting" },
               { img: "/images/bunkbeds.jpg", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, reclaimed wood throughout, and beautiful garden views" },
-              { img: "/images/bedroom-master.webp", name: "Queen Suite", desc: "Rope-suspended queen bed that swings, ornate chandelier, and vaulted ceilings" },
+              { img: "/images/bedroom-master.webp", name: "Queen Suite", desc: "Rope-suspended queen bed that swings, antique chandelier, and vaulted ceilings" },
               { img: "/images/bedroom-hearth.webp", name: "Guest Cottage", desc: "Private guest cottage with a queen bed and three twins, exposed beams, a wood-burning stove, full kitchen, and pebbled rain shower" },
-              { img: "/images/bathroom-soaker.webp", name: "Private Bath", desc: "Private soaking bath with exposed beam and garden views" },
+              { img: "/images/bathroom-soaker.webp", name: "Private Bath", desc: "Private soaking bath with exposed beams, wet sauna, and garden views" },
               { img: "/images/bathroom-shower.webp", name: "Rain Shower Suite", desc: "Glass walk-in shower with natural stone and soaking tub, complete with a relaxing wet sauna" },
-              { img: "/images/interior-openplan.webp", name: "Open Living", desc: "Kitchen, dining, and living area flow beneath timber beams with a barn wood coffered ceiling" },
+              { img: "/images/interior-living-wide.webp", name: "Open Living", desc: "Kitchen, dining, and living area flow beneath timber beams with a barn wood coffered ceiling" },
               { img: "/images/hallway-barndoors.webp", name: "Gallery Hallway", desc: "Glass railings, sliding barn doors, and gorgeous woodland views at every turn" },
             ].map((room, i) => (
               <AnimatedSection key={room.name} delay={i * 0.08}>
@@ -481,7 +483,7 @@ export default function HomePage() {
             </AnimatedSection>
             <AnimatedSection delay={0.12}>
               <Link href="/gallery" className="relative block h-full overflow-hidden group zoom-container">
-                <Image src="/images/creek.jpg" alt="Private creek" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src="/images/creek.jpg" alt="Private stream" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-500" />
               </Link>
             </AnimatedSection>
@@ -614,7 +616,7 @@ export default function HomePage() {
       <div className={`fixed bottom-0 left-0 right-0 z-40 lg:hidden transition-all duration-500 ${showStickyBar ? "translate-y-0" : "translate-y-full"}`}>
         <div className="bg-dark/95 backdrop-blur-md px-6 py-3 flex items-center justify-between">
           <div>
-            <p className="text-white text-sm font-heading">From $3,000/night</p>
+            <p className="text-white text-sm font-heading">From $5,500/night</p>
             <p className="text-white/40 text-[9px] tracking-[0.2em] uppercase">Limited dates available</p>
           </div>
           <Link href="/booking" className="text-[10px] tracking-[0.25em] uppercase bg-white text-dark px-5 py-2.5 hover:bg-accent hover:text-white transition-colors">

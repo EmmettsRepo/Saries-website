@@ -10,7 +10,7 @@ import AnimatedSection from "@/components/AnimatedSection";
 const packages = [
   {
     name: "Elopement",
-    price: "$3,000",
+    price: "$5,500",
     capacity: "Up to 15 guests",
     duration: "1 night",
     includes: ["Ceremony lawn access", "Basic setup (arch + chairs)", "1-hour venue prep", "Parking", "Overnight stay"],
@@ -19,7 +19,7 @@ const packages = [
   },
   {
     name: "Gathering",
-    price: "$3,000",
+    price: "$5,500",
     capacity: "Up to 40 guests",
     duration: "1 night",
     includes: ["Indoor or outdoor space", "Tables & chairs", "Basic lighting", "2-hour setup", "Parking", "Overnight stay"],
@@ -28,7 +28,7 @@ const packages = [
   },
   {
     name: "Corporate",
-    price: "$3,000",
+    price: "$5,500",
     capacity: "Up to 50 guests",
     duration: "1 night",
     includes: ["Grand Hall + breakout spaces", "AV equipment", "High-speed Wi-Fi", "Coffee & tea all day", "Courtyard access", "Overnight stay"],
@@ -52,7 +52,7 @@ const packages = [
     duration: "Full weekend (3 nights)",
     includes: ["Everything in Signature", "7 bedrooms (all 3 nights)", "Private chef — all meals", "Guided nature walk", "Welcome reception", "Farewell brunch", "Full cleanup"],
     best: "Destination weddings, multi-day celebrations",
-    details: "The ultimate ANEW experience. Guests arrive Friday, celebrate all weekend, and gather for farewell brunch Sunday. Three nights at $3,000/night.",
+    details: "The ultimate ANEW experience. Guests arrive Friday, celebrate all weekend, and gather for farewell brunch Sunday. Three nights at $5,500/night.",
   },
   {
     name: "Custom",
@@ -61,7 +61,7 @@ const packages = [
     duration: "Any duration",
     includes: ["Fully customizable", "Mix & match spaces", "Custom catering", "Personalized add-ons", "Dedicated planning"],
     best: "Unique celebrations",
-    details: "Have something specific in mind? Tell us your vision and we'll build a custom proposal. Base rate is $3,000/night.",
+    details: "Have something specific in mind? Tell us your vision and we'll build a custom proposal. Base rate is $5,500/night.",
   },
 ];
 

@@ -11,7 +11,7 @@ export const BLOCK_OPTIONS: BlockOption[] = [
   { hours: 4, price: 1500, label: "4 Hours", desc: "Half-day event" },
   { hours: 8, price: 2500, label: "8 Hours", desc: "Full-day event" },
   { hours: 12, price: 3500, label: "12 Hours", desc: "Extended day" },
-  { hours: 24, price: 4500, label: "24 Hours", desc: "Overnight stay" },
+  { hours: 24, price: 5500, label: "24 Hours", desc: "Overnight stay" },
 ];
 
 export const EVENT_TYPES = [
@@ -22,6 +22,8 @@ export const EVENT_TYPES = [
   "Corporate Retreat",
   "Private Dinner",
   "Wellness Retreat",
+  "Personal Stay",
+  "Immersion",
   "Photography",
   "Other",
 ];

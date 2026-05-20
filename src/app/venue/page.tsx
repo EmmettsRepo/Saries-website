@@ -26,7 +26,7 @@ const spaces = [
 const faqs = [
   { q: "How far in advance should I book?", a: "We recommend 6-12 months for peak season (May-October). Off-season dates may be available with shorter notice." },
   { q: "What is the maximum guest count?", a: "Up to 75 guests for events. The estate sleeps up to 13 overnight across 7 bedrooms." },
-  { q: "Are overnight stays included?", a: "Yes — every booking includes an overnight stay. The base rate is $3,000 per night." },
+  { q: "Are overnight stays included?", a: "Yes — every booking includes an overnight stay. The base rate is $5,500 per night." },
   { q: "What about parking?", a: "On-site parking for up to 20 vehicles. For larger events, we can arrange shuttle service from nearby lots." },
   { q: "Is the venue accessible?", a: "The main floor, Grand Hall, courtyard, and fire pit are all ground-level accessible. Please contact us to discuss specific accessibility needs." },
   { q: "What if it rains?", a: "The Grand Hall and Event Pavilion seat up to 75 indoors. We can transition outdoor ceremonies inside with advance notice." },
@@ -76,13 +76,13 @@ export default function VenuePage() {
             </div>
             <HandDrawnDivider variant="botanical" className="mb-8" />
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-6">
-              ANEW is a natural oasis amidst the city — a 5,800 sq ft estate of refined craftsmanship and rustic charm, set on two wooded acres just minutes from Seattle.
+              ANEW is a natural oasis amidst the city — a 5,800 sq ft estate of refined craftsmanship and rustic charm, set on two woodland acres just minutes from Seattle.
             </p>
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-6">
-              The estate features an elevated on-site wellness venue with wet and dry sauna, massage therapy, IV therapy treatments, a workout center, and a private soaking tub retreat — an exceptional space designed to restore mind and body.
+              The estate features a wellness venue with wet and dry sauna, massage therapy, IV therapy treatments, an elevated workout center, and a private soaking tub retreat — an exceptional space designed to restore mind and body.
             </p>
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-6">
-              The workout center is outfitted with all-in-one Tonal strength training systems, vibration plates, yoga mats, red light therapy panels, and PEMF mats.
+              The elevated workout center is outfitted with all-in-one Tonal strength training systems, a vibration plate, yoga mats, red light therapy panels, and a PEMF mat.
             </p>
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto">
               Every detail reflects elegant, intentional design — from the hand-forged ironwork to the weathered timber facades, finished to non-toxic mineral standards throughout. An exclusive setting for celebrations, retreats, and experiences that feel truly exceptional.
@@ -105,10 +105,10 @@ export default function VenuePage() {
               Rustic Charm,<br />Refined Craftsmanship
             </h3>
             <p className="text-muted leading-relaxed mb-6 text-[15px]">
-              Weathered barn wood facades, stone pathways winding through the grounds, and a private creek where deer come to drink at dawn. A natural oasis amidst the city where every detail tells a story.
+              Weathered barn wood facades, stone pathways winding through the grounds, and a private stream where deer come to drink at dawn. A natural oasis amidst the city where every detail tells a story.
             </p>
             <p className="text-muted leading-relaxed text-[15px]">
-              The property features a ceremony lawn, an elegant courtyard with fire pit and string lights, a creek-side garden terrace, and nature trails through the surrounding forest.
+              The property features a ceremony lawn, an elegant courtyard with fire pit and string lights, a stream-side garden terrace, and nature trails through the surrounding forest.
             </p>
           </AnimatedSection>
         </div>
@@ -123,10 +123,10 @@ export default function VenuePage() {
               Elevated Spa<br />&amp; Wellness
             </h3>
             <p className="text-muted leading-relaxed mb-6 text-[15px]">
-              An exceptional on-site spa experience unlike anything else in the area. Our wellness center features a cedar-lined sauna, private massage and treatment rooms, IV therapy services, and a serene soaking tub retreat.
+              An exceptional on-site spa experience unlike anything else in the area. Our wellness retreat features a cedar-lined sauna, private massage and treatment rooms, IV therapy services, and a serene soaking tub retreat.
             </p>
             <p className="text-muted leading-relaxed mb-8 text-[15px]">
-              Whether you&apos;re preparing for your wedding day, unwinding after a corporate retreat, or simply seeking restoration — our exclusive wellness offerings elevate every visit into something truly exceptional.
+              Whether you&apos;re preparing for your wedding day, planning a romantic getaway or a date, unwinding after a corporate retreat, or simply seeking restoration — our exclusive wellness offerings elevate every visit into something truly exceptional.
             </p>
             <Link href="/experiences" className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors duration-300">
               View Spa Experiences
@@ -136,6 +136,29 @@ export default function VenuePage() {
             <div className="relative aspect-[4/5] lg:aspect-[3/4] max-h-[700px]">
               <Image src="/images/spa-sauna.jpg" alt="ANEW Spa & Sauna" fill className="object-cover" />
             </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* Gym / Strength & Recovery */}
+      <section className="py-28 sm:py-36 px-6">
+        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-6 lg:gap-0 items-center">
+          <AnimatedSection direction="left">
+            <div className="relative aspect-[4/5] lg:aspect-[3/4] max-h-[700px]">
+              <Image src="/images/gym-tonal-wide.webp" alt="ANEW gym with Tonal training systems" fill className="object-cover" />
+            </div>
+          </AnimatedSection>
+          <AnimatedSection direction="right" className="lg:pl-20 xl:pl-28">
+            <p className="text-[11px] tracking-[0.4em] uppercase text-accent mb-4">Movement</p>
+            <h3 className="font-heading text-3xl sm:text-4xl text-dark mb-6 font-normal leading-tight">
+              Strength<br />&amp; Recovery
+            </h3>
+            <p className="text-muted leading-relaxed mb-6 text-[15px]">
+              A purpose-built elevated workout center with all-in-one Tonal strength training systems, a vibration plate, yoga mats, red light therapy panels, and a PEMF mat — designed for guided sessions, focused training, and recovery.
+            </p>
+            <p className="text-muted leading-relaxed text-[15px]">
+              Glass garage doors open the entire space to the gardens, blurring the line between indoor training and the surrounding woodland.
+            </p>
           </AnimatedSection>
         </div>
       </section>
@@ -207,7 +230,7 @@ export default function VenuePage() {
           </AnimatedSection>
           <div className="grid sm:grid-cols-2 gap-10 text-left max-w-2xl mx-auto">
             {[
-              { name: "Spring", desc: "Wildflowers bloom along the trails, the creek runs full, and mild temperatures create an elegant backdrop for outdoor ceremonies." },
+              { name: "Spring", desc: "Wildflowers bloom along the trails, the stream runs full, and mild temperatures create an elegant backdrop for outdoor ceremonies." },
               { name: "Summer", desc: "Long golden evenings and warm breezes — exceptional conditions for al fresco dining and celebrations under the stars." },
               { name: "Autumn", desc: "A tapestry of gold, amber, and crimson. Crisp air and stunning foliage create an elevated, unforgettable setting." },
               { name: "Winter", desc: "Cozy fireside receptions, frost-covered grounds, and the quiet beauty of a natural oasis in winter. Intimate and elegant." },
