@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 // Hand-drawn style dividers — organic, imperfect lines that feel sketched
 
 interface HandDrawnDividerProps {
@@ -15,20 +13,8 @@ export default function HandDrawnDivider({
   variant = "botanical",
   color = "#9AACAB",
 }: HandDrawnDividerProps) {
-  if (variant === "ivy") {
-    return (
-      <div className={`flex justify-center ${className}`} aria-hidden="true">
-        <Image
-          src="/svg/ivy-divider.png"
-          alt=""
-          width={300}
-          height={60}
-          className="botanical-divider"
-          style={{ objectFit: "contain" }}
-        />
-      </div>
-    );
-  }
+  // Botanical and ivy variants disabled site-wide per design update.
+  if (variant === "botanical" || variant === "ivy") return null;
 
   if (variant === "simple") {
     return (

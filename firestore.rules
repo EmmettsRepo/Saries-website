@@ -28,19 +28,32 @@ service cloud.firestore {
     }
 
     // === Booking inquiries — paying customers ===
-    // Anyone can create (guests pay without account). Owners + admins can read/update.
+    // Client writes are only allowed when paired with a Stripe payment intent
+    // (the webhook is the authoritative payment-status source via admin SDK).
     match /booking_inquiries/{docId} {
-      allow create: if request.resource.data.keys().hasAll(['email', 'type', 'status'])
+      allow create: if request.resource.data.keys().hasAll(['email', 'type', 'status', 'paymentIntentId'])
         && request.resource.data.email is string
         && request.resource.data.email.size() > 0
         && request.resource.data.email.size() < 255
         && request.resource.data.type == 'booking'
         && request.resource.data.status == 'new'
+        && request.resource.data.paymentIntentId is string
+        && request.resource.data.paymentIntentId.matches('^pi_[A-Za-z0-9_]+$')
         && request.resource.data.keys().size() < 50;
 
       allow read: if isOwner(resource) || isAdmin();
-      allow update: if isOwner(resource) || isAdmin();
+      // Owners can only update status/notes; payment fields are admin/webhook only.
+      allow update: if isAdmin() || (
+        isOwner(resource)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['notes', 'guestCount', 'updatedAt'])
+      );
       allow delete: if isAdmin();
+    }
+
+    // === Rate limit counters — Cloud Functions only ===
+    match /_rate_limits/{docId} {
+      allow read, write: if false;
     }
 
     // === Tour requests ===
@@ -95,6 +108,18 @@ service cloud.firestore {
     match /external_bookings/{docId} {
       allow read: if isAdmin();
       allow write: if false; // Cloud Functions only (admin SDK bypasses rules)
+    }
+
+    // === Guest messages forwarded from Hospitable ===
+    match /guest_messages/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // === Guest reviews forwarded from Hospitable ===
+    match /guest_reviews/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Cloud Functions only
     }
   }
 }

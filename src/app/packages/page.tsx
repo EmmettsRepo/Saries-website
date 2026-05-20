@@ -50,7 +50,7 @@ const packages = [
     price: "$9,000",
     capacity: "Up to 75 guests",
     duration: "Full weekend (3 nights)",
-    includes: ["Everything in Signature", "5 bedrooms (all 3 nights)", "Private chef — all meals", "Guided nature walk", "Welcome reception", "Farewell brunch", "Full cleanup"],
+    includes: ["Everything in Signature", "7 bedrooms (all 3 nights)", "Private chef — all meals", "Guided nature walk", "Welcome reception", "Farewell brunch", "Full cleanup"],
     best: "Destination weddings, multi-day celebrations",
     details: "The ultimate ANEW experience. Guests arrive Friday, celebrate all weekend, and gather for farewell brunch Sunday. Three nights at $3,000/night.",
   },

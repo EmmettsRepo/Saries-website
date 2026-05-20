@@ -8,88 +8,54 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, Minus, Plus, CheckCircle2 } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { submitBookingInquiry } from "@/lib/submissions";
-import { getChefs, type Chef } from "@/lib/chefs";
 import { useBotGuard } from "@/components/BotGuard";
 import { useAuth } from "@/components/AuthProvider";
 import AuthModal from "@/components/AuthModal";
 import StripePayment from "@/components/StripePayment";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
-import { FEATURES } from "@/lib/featureFlags";
+import { BLOCK_OPTIONS, EVENT_TYPES, addHours, durationBetween, formatTime, type DurationBlock } from "@/lib/booking";
 
-const eventTypeOptions = [
-  "Wedding", "Elopement", "Birthday Celebration", "Family Gathering",
-  "Corporate Retreat", "Private Dinner", "Wellness Retreat",
-  "Photography Session", "Holiday Event", "Weekend Celebration", "Other",
-];
-
-const yearOptions = ["2026", "2027", "2028"];
-const seasonOptions = ["Spring (Mar-May)", "Summer (Jun-Aug)", "Fall (Sep-Nov)", "Winter (Dec-Feb)"];
-
-const durationOptions = [
-  { label: "Half Day (4 hrs)", value: "half" },
-  { label: "Full Day (8 hrs)", value: "full" },
-  { label: "Extended (12 hrs)", value: "extended" },
-  { label: "Weekend (2 days)", value: "weekend" },
-  { label: "Custom", value: "custom" },
-];
-
-const packageOptions = [
-  { name: "Elopement", price: 3000, desc: "Up to 15 · 1 night" },
-  { name: "Gathering", price: 3000, desc: "Up to 40 · 1 night" },
-  { name: "Corporate", price: 3000, desc: "Up to 50 · 1 night" },
-  { name: "Signature", price: 6000, desc: "Up to 75 · 2 nights", popular: true },
-  { name: "Weekend Retreat", price: 9000, desc: "Up to 75 · 3 nights" },
-  { name: "Custom", price: 0, desc: "Up to 75 · Custom" },
-];
-
-const addOnOptions = [
-  { name: "Catering Service", price: 45, unit: "/person", key: "catering" },
-  { name: "Photography", price: 800, unit: "", key: "photography" },
-  { name: "DJ / Music", price: 600, unit: "", key: "dj" },
-  { name: "Floral & Decor", price: 1200, unit: "", key: "floral" },
-  { name: "Fire Pit Evening", price: 300, unit: "", key: "firepit" },
-  { name: "Ceremony Setup", price: 500, unit: "", key: "ceremony" },
-  { name: "Nature Walk", price: 200, unit: "", key: "nature" },
-  { name: "Extended Hours", price: 400, unit: "/hr", key: "extended" },
-  { name: "Cleanup", price: 350, unit: "", key: "cleanup" },
-  { name: "Shuttle", price: 250, unit: "", key: "shuttle" },
-];
-
-const boutiqueAddOns = [
-  { name: "Welcome Gift — Signature Tea & Truffles", price: 68, key: "gift-tea" },
-  { name: "Silk Sleep Mask (per guest room)", price: 48, key: "gift-mask" },
-  { name: "Spa Bathrobe (per guest room)", price: 200, key: "gift-robe" },
-  { name: "Cashmere Blanket", price: 780, key: "gift-cashmere" },
-  { name: "Baby Alpaca Blanket", price: 640, key: "gift-alpaca" },
-  { name: "Cork Yoga Mat Set (group)", price: 65, unit: "/mat", key: "gift-yoga" },
-  { name: "Local Chocolate Box", price: 48, key: "gift-chocolate" },
-  { name: "Lavender Sachet Set", price: 32, key: "gift-lavender" },
-  { name: "Sheepskin Throw (4×6)", price: 280, key: "gift-sheepskin" },
-  { name: "Selenite Votive Set", price: 80, key: "gift-selenite" },
-];
-
-const steps = ["Event", "Package", "Vision", "Review", "Payment"];
+const STEPS = ["Date & Time", "Your Details", "Payment"];
 
 interface FormData {
-  eventType: string; preferredYear: string; preferredSeason: string;
   selectedDate: Date | null;
+  blockHours: DurationBlock | null;
+  startTime: string;
+  endTime: string;
+  eventType: string;
   guestCount: number;
-  duration: string; setting: string; selectedPackage: string; packagePrice: number;
-  addOns: string[]; boutiqueItems: string[]; selectedChef: string; cateringPref: string; decorStyle: string; budget: string;
-  specialRequests: string; hearAbout: string; agreeTerms: boolean;
-  guestName: string; guestEmail: string; guestPhone: string;
+  notes: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  agreeTerms: boolean;
 }
 
 function BookingPageInner() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [authOpen, setAuthOpen] = useState(false);
-  const [chefs, setChefs] = useState<Chef[]>([]);
   const [step, setStep] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const botGuard = useBotGuard();
 
-  useEffect(() => { getChefs().then(setChefs); }, []);
+  const [form, setForm] = useState<FormData>({
+    selectedDate: null,
+    blockHours: null,
+    startTime: "15:00",
+    endTime: "19:00",
+    eventType: "",
+    guestCount: 10,
+    notes: "",
+    guestName: "",
+    guestEmail: "",
+    guestPhone: "",
+    agreeTerms: false,
+  });
 
-  // Pre-select date from ?date=YYYY-MM-DD query param (homepage calendar deep-link)
   useEffect(() => {
     const dateParam = searchParams.get("date");
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
@@ -99,104 +65,88 @@ function BookingPageInner() {
         setForm((prev) => prev.selectedDate ? prev : { ...prev, selectedDate: date });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [submitted, setSubmitted] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const [form, setForm] = useState<FormData>({
-    eventType: "", preferredYear: "", preferredSeason: "",
-    selectedDate: null,
-    guestCount: 30,
-    duration: "", setting: "", selectedPackage: "", packagePrice: 0,
-    addOns: [], boutiqueItems: [], selectedChef: "", cateringPref: "", decorStyle: "", budget: "",
-    specialRequests: "", hearAbout: "", agreeTerms: false,
-    guestName: "", guestEmail: "", guestPhone: "",
-  });
 
   const updateForm = (updates: Partial<FormData>) => {
     setForm((prev) => ({ ...prev, ...updates }));
-    const clearedErrors = { ...errors };
-    Object.keys(updates).forEach((k) => delete clearedErrors[k]);
-    setErrors(clearedErrors);
+    setErrors((errs) => {
+      const next = { ...errs };
+      Object.keys(updates).forEach((k) => delete next[k]);
+      return next;
+    });
   };
 
-  const toggleAddOn = (key: string) => {
-    updateForm({ addOns: form.addOns.includes(key) ? form.addOns.filter((a) => a !== key) : [...form.addOns, key] });
+  const pickBlock = (hours: DurationBlock) => {
+    updateForm({ blockHours: hours, endTime: addHours(form.startTime, hours) });
   };
 
-  const toggleBoutiqueItem = (key: string) => {
-    updateForm({ boutiqueItems: form.boutiqueItems.includes(key) ? form.boutiqueItems.filter((a) => a !== key) : [...form.boutiqueItems, key] });
+  const updateStart = (startTime: string) => {
+    updateForm({
+      startTime,
+      endTime: form.blockHours ? addHours(startTime, form.blockHours) : form.endTime,
+    });
   };
 
   const validateStep = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 0) {
-      if (!form.selectedDate) errs.selectedDate = "Please select an arrival date from the calendar";
-      if (!form.eventType) errs.eventType = "Required";
-      if (!form.duration) errs.duration = "Required";
-      if (!form.setting) errs.setting = "Required";
+      if (!form.selectedDate) errs.selectedDate = "Select an arrival date";
+      if (!form.blockHours) errs.blockHours = "Choose a duration";
+      if (!form.startTime) errs.startTime = "Required";
+      if (!form.endTime) errs.endTime = "Required";
     }
-    if (step === 1 && !form.selectedPackage) errs.selectedPackage = "Required";
-    if (step === 3) {
-      if (!form.agreeTerms) errs.agreeTerms = "Required";
-      if (!botGuard.verified) errs.botGuard = "Please verify you're not a robot";
-      if (botGuard.isBot()) errs.botGuard = "Verification failed";
+    if (step === 1) {
+      if (!form.eventType) errs.eventType = "Required";
       if (!user) {
         if (!form.guestName.trim()) errs.guestName = "Required";
         if (!form.guestEmail.trim()) errs.guestEmail = "Required";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) errs.guestEmail = "Invalid email";
+        if (!form.guestPhone.trim()) errs.guestPhone = "Required";
       }
+      if (!form.agreeTerms) errs.agreeTerms = "Required";
+      if (!botGuard.verified || botGuard.isBot()) errs.botGuard = "Verify you're not a robot";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const next = () => { if (validateStep()) setStep((s) => Math.min(s + 1, 4)); };
+  const next = () => { if (validateStep()) setStep((s) => Math.min(s + 1, STEPS.length - 1)); };
   const prev = () => setStep((s) => Math.max(s - 1, 0));
-  const botGuard = useBotGuard();
-  const [submitting, setSubmitting] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const selectedBlock = BLOCK_OPTIONS.find((b) => b.hours === form.blockHours) || null;
+  const chargeAmount = selectedBlock?.price || 0;
+  const actualDuration = durationBetween(form.startTime, form.endTime);
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
     setSubmitting(true);
     try {
       await submitBookingInquiry({
-        ...form,
-        selectedDate: form.selectedDate ? form.selectedDate.toISOString() : null,
         type: "booking",
         userId: user?.uid || "guest",
         email: user?.email || form.guestEmail,
         displayName: user?.displayName || form.guestName,
         phone: form.guestPhone || undefined,
-        estimatedTotal: subtotal,
-        amountPaid: subtotal,
+        selectedDate: form.selectedDate ? form.selectedDate.toISOString() : null,
+        durationHours: form.blockHours,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        actualDurationHours: actualDuration,
+        eventType: form.eventType,
+        guestCount: form.guestCount,
+        notes: form.notes,
+        amountPaid: chargeAmount,
+        estimatedTotal: chargeAmount,
         paymentIntentId,
         paymentStatus: "paid",
       });
       setSubmitted(true);
     } catch (err) {
       console.error("Submission error:", err);
+      setPaymentError("Payment succeeded but we couldn't save your booking. Please contact us with your payment confirmation.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const addOnTotal = form.addOns.reduce((sum, key) => {
-    const addon = addOnOptions.find((a) => a.key === key);
-    if (!addon) return sum;
-    if (addon.key === "catering") return sum + addon.price * form.guestCount;
-    return sum + addon.price;
-  }, 0);
-  const boutiqueTotal = FEATURES.BOUTIQUE
-    ? form.boutiqueItems.reduce((sum, key) => {
-        const item = boutiqueAddOns.find((a) => a.key === key);
-        return item ? sum + item.price : sum;
-      }, 0)
-    : 0;
-  const selectedChef = form.selectedChef ? chefs.find((c) => c.id === form.selectedChef) : null;
-  const chefTotal = selectedChef ? selectedChef.price * form.guestCount : 0;
-  const subtotal = form.packagePrice + addOnTotal + boutiqueTotal + chefTotal;
 
   const inputClass = (field: string) =>
     `w-full border-b bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none transition-colors ${
@@ -212,9 +162,20 @@ function BookingPageInner() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
           <CheckCircle2 className="w-12 h-12 text-accent mx-auto mb-6" />
           <h2 className="font-heading text-3xl text-dark mb-3">Reservation Confirmed</h2>
-          <p className="text-muted text-sm mb-4">Payment of <span className="text-dark font-medium">${subtotal.toLocaleString()}</span> received.</p>
-          {dateStr && <p className="text-muted text-sm mb-4">Arrival: <span className="text-dark font-medium">{dateStr}</span></p>}
-          <p className="text-muted text-sm mb-8">We&apos;ll send a confirmation email and reach out shortly to finalize details for your {form.eventType.toLowerCase() || "stay"}.</p>
+          <p className="text-muted text-sm mb-4">
+            Payment of <span className="text-dark font-medium">${chargeAmount.toLocaleString()}</span> received.
+          </p>
+          {dateStr && (
+            <p className="text-muted text-sm mb-2">
+              <span className="text-dark font-medium">{dateStr}</span>
+            </p>
+          )}
+          <p className="text-muted text-sm mb-8">
+            {formatTime(form.startTime)} – {formatTime(form.endTime)} ({form.blockHours} hr block)
+          </p>
+          <p className="text-muted text-sm mb-8">
+            Confirmation email on the way. We&apos;ll be in touch shortly to lock in the details.
+          </p>
           <Link href="/profile" className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-8 py-3.5 hover:bg-accent transition-colors duration-500">
             View Your Bookings
           </Link>
@@ -225,37 +186,32 @@ function BookingPageInner() {
 
   return (
     <>
-      {/* Hero */}
       <section className="relative h-[45vh] min-h-[300px] flex items-center justify-center">
         <Image src="/images/forest-approach.jpg" alt="Booking" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>
-            <p className="text-[11px] tracking-[0.5em] uppercase mb-5 text-white/70">Begin Your Journey</p>
-            <h1 className="font-heading text-5xl sm:text-6xl font-normal">Plan Your Event</h1>
+            <p className="text-[11px] tracking-[0.5em] uppercase mb-5 text-white/70">Reserve Your Date</p>
+            <h1 className="font-heading text-5xl sm:text-6xl font-normal">Book the Estate</h1>
           </AnimatedSection>
         </div>
       </section>
 
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          {/* Progress Stepper */}
-          <div className="max-w-2xl mx-auto mb-12">
+          {/* Stepper */}
+          <div className="max-w-xl mx-auto mb-12">
             <div className="flex items-center justify-between relative">
-              {/* Connecting line */}
               <div className="absolute top-4 left-0 right-0 h-[2px] bg-border" />
-              <div className="absolute top-4 left-0 h-[2px] bg-accent transition-all duration-500" style={{ width: `${(step / (steps.length - 1)) * 100}%` }} />
-
-              {steps.map((s, i) => (
+              <div className="absolute top-4 left-0 h-[2px] bg-accent transition-all duration-500" style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }} />
+              {STEPS.map((s, i) => (
                 <div key={s} className="relative flex flex-col items-center z-10">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
                     i < step ? "bg-accent text-white" : i === step ? "bg-dark text-white ring-4 ring-dark/10" : "bg-white border-2 border-border text-muted"
                   }`}>
                     {i < step ? <Check className="w-4 h-4" /> : i + 1}
                   </div>
-                  <span className={`mt-2 text-[10px] tracking-[0.15em] uppercase whitespace-nowrap ${
-                    i <= step ? "text-dark" : "text-muted"
-                  }`}>{s}</span>
+                  <span className={`mt-2 text-[10px] tracking-[0.15em] uppercase whitespace-nowrap ${i <= step ? "text-dark" : "text-muted"}`}>{s}</span>
                 </div>
               ))}
             </div>
@@ -265,10 +221,9 @@ function BookingPageInner() {
             <div className="lg:col-span-3">
               <AnimatePresence mode="wait">
                 <motion.div key={step} initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -15 }} transition={{ duration: 0.25 }}>
-                  {/* STEP 0: Event Details */}
+                  {/* STEP 0: Date & Time */}
                   {step === 0 && (
                     <div className="space-y-8">
-                      {/* Availability Calendar — date selection */}
                       <div>
                         <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Select Your Date *</label>
                         <AvailabilityCalendar
@@ -277,207 +232,98 @@ function BookingPageInner() {
                         />
                         {form.selectedDate && (
                           <p className="text-xs text-accent mt-3">
-                            Selected: {form.selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                            {form.selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                           </p>
                         )}
                         {errors.selectedDate && <p className="text-red-500 text-xs mt-2">{errors.selectedDate}</p>}
                       </div>
 
-                      <h3 className="font-heading text-2xl text-dark">Event Details</h3>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Event Type *</label>
-                        <select value={form.eventType} onChange={(e) => updateForm({ eventType: e.target.value })} className={inputClass("eventType")}>
-                          <option value="">Select...</option>
-                          {eventTypeOptions.map((t) => <option key={t}>{t}</option>)}
-                        </select>
-                        {errors.eventType && <p className="text-red-500 text-xs mt-1">{errors.eventType}</p>}
-                      </div>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Guest Count</label>
-                        <div className="flex items-center gap-4">
-                          <button type="button" onClick={() => updateForm({ guestCount: Math.max(2, form.guestCount - 5) })} className="w-8 h-8 border border-border flex items-center justify-center hover:border-accent transition-colors"><Minus className="w-3 h-3" /></button>
-                          <input type="number" value={form.guestCount} onChange={(e) => updateForm({ guestCount: Math.max(2, Math.min(75, Number(e.target.value))) })} className="w-16 text-center border-b border-border bg-transparent py-2 text-lg font-heading focus:outline-none focus:border-accent" />
-                          <button type="button" onClick={() => updateForm({ guestCount: Math.min(75, form.guestCount + 5) })} className="w-8 h-8 border border-border flex items-center justify-center hover:border-accent transition-colors"><Plus className="w-3 h-3" /></button>
-                        </div>
-                      </div>
                       <div>
                         <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Duration *</label>
-                        <div className="flex flex-wrap gap-2">
-                          {durationOptions.map((d) => (
-                            <button key={d.value} type="button" onClick={() => updateForm({ duration: d.value })}
-                              className={`px-4 py-2.5 text-sm border transition-all ${form.duration === d.value ? "border-dark text-dark" : "border-border text-muted hover:border-dark"}`}>
-                              {d.label}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {BLOCK_OPTIONS.map((b) => (
+                            <button
+                              key={b.hours}
+                              type="button"
+                              onClick={() => pickBlock(b.hours)}
+                              className={`p-4 border text-left transition-all ${
+                                form.blockHours === b.hours ? "border-dark text-dark" : "border-border text-muted hover:border-dark"
+                              }`}
+                            >
+                              <div className="font-heading text-lg">{b.label}</div>
+                              <div className="text-[10px] tracking-[0.1em] uppercase mt-1">{b.desc}</div>
+                              <div className="text-sm text-dark mt-2">${b.price.toLocaleString()}</div>
                             </button>
                           ))}
                         </div>
-                        {errors.duration && <p className="text-red-500 text-xs mt-1">{errors.duration}</p>}
-                      </div>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Setting *</label>
-                        <div className="flex gap-2">
-                          {["Indoor", "Outdoor", "Both"].map((s) => (
-                            <button key={s} type="button" onClick={() => updateForm({ setting: s })}
-                              className={`flex-1 py-3 text-sm border transition-all ${form.setting === s ? "border-dark text-dark" : "border-border text-muted hover:border-dark"}`}>
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                        {errors.setting && <p className="text-red-500 text-xs mt-1">{errors.setting}</p>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 1: Package & Add-ons */}
-                  {step === 1 && (
-                    <div className="space-y-8">
-                      <h3 className="font-heading text-2xl text-dark">Package & Add-ons</h3>
-                      <div className="space-y-0">
-                        {packageOptions.map((pkg) => (
-                          <button key={pkg.name} type="button" onClick={() => updateForm({ selectedPackage: pkg.name, packagePrice: pkg.price })}
-                            className={`w-full flex items-center justify-between py-5 border-b border-border text-left transition-colors ${form.selectedPackage === pkg.name ? "text-dark" : "text-muted hover:text-dark"}`}>
-                            <div className="flex items-center gap-3">
-                              <div className={`w-4 h-4 border rounded-full flex items-center justify-center ${form.selectedPackage === pkg.name ? "border-accent bg-accent" : "border-border"}`}>
-                                {form.selectedPackage === pkg.name && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                              </div>
-                              <div>
-                                <span className="text-[15px]">{pkg.name}</span>
-                                {pkg.popular && <span className="ml-2 text-[9px] tracking-[0.2em] uppercase text-accent">Popular</span>}
-                                <p className="text-xs text-muted mt-0.5">{pkg.desc}</p>
-                              </div>
-                            </div>
-                            <span className="font-heading text-lg">{pkg.price > 0 ? `$${pkg.price.toLocaleString()}` : "Custom"}</span>
-                          </button>
-                        ))}
-                      </div>
-                      {errors.selectedPackage && <p className="text-red-500 text-xs">{errors.selectedPackage}</p>}
-
-                      <div>
-                        <p className="text-[11px] tracking-[0.2em] uppercase text-muted mb-4">Add-ons</p>
-                        <div className="space-y-0">
-                          {addOnOptions.map((addon) => (
-                            <button key={addon.key} type="button" onClick={() => toggleAddOn(addon.key)}
-                              className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${form.addOns.includes(addon.key) ? "text-dark" : "text-muted hover:text-dark"}`}>
-                              <span className="flex items-center gap-2">
-                                <div className={`w-3.5 h-3.5 border flex items-center justify-center ${form.addOns.includes(addon.key) ? "bg-accent border-accent" : "border-border"}`}>
-                                  {form.addOns.includes(addon.key) && <Check className="w-2.5 h-2.5 text-white" />}
-                                </div>
-                                {addon.name}
-                              </span>
-                              <span>${addon.price}{addon.unit}</span>
-                            </button>
-                          ))}
-                        </div>
+                        {errors.blockHours && <p className="text-red-500 text-xs mt-2">{errors.blockHours}</p>}
                       </div>
 
-                      <div>
-                        <p className="text-[11px] tracking-[0.2em] uppercase text-muted mb-4">Book a Private Chef</p>
-                        <div className="space-y-0">
-                          <button type="button" onClick={() => updateForm({ selectedChef: "" })}
-                            className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${!form.selectedChef ? "text-dark" : "text-muted hover:text-dark"}`}>
-                            <span className="flex items-center gap-2">
-                              <div className={`w-4 h-4 border rounded-full flex items-center justify-center ${!form.selectedChef ? "border-accent bg-accent" : "border-border"}`}>
-                                {!form.selectedChef && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                              </div>
-                              No chef needed
-                            </span>
-                          </button>
-                          {chefs.map((chef) => (
-                            <button key={chef.id} type="button" onClick={() => updateForm({ selectedChef: chef.id })}
-                              className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${form.selectedChef === chef.id ? "text-dark" : "text-muted hover:text-dark"}`}>
-                              <span className="flex items-center gap-2">
-                                <div className={`w-4 h-4 border rounded-full flex items-center justify-center ${form.selectedChef === chef.id ? "border-accent bg-accent" : "border-border"}`}>
-                                  {form.selectedChef === chef.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                                </div>
-                                <div>
-                                  <span>{chef.name}</span>
-                                  <span className="text-xs text-muted ml-2">{chef.specialty}</span>
-                                </div>
-                              </span>
-                              <span className="font-heading">${chef.price}/person</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {FEATURES.BOUTIQUE && (
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-[11px] tracking-[0.2em] uppercase text-muted mb-2">Boutique Add-ons</p>
-                          <p className="text-xs text-muted mb-4">Elevate your event with curated boutique items</p>
-                          <div className="space-y-0">
-                            {boutiqueAddOns.map((item) => (
-                              <button key={item.key} type="button" onClick={() => toggleBoutiqueItem(item.key)}
-                                className={`w-full flex items-center justify-between py-3.5 border-b border-border text-left text-sm transition-colors ${form.boutiqueItems.includes(item.key) ? "text-dark" : "text-muted hover:text-dark"}`}>
-                                <span className="flex items-center gap-2">
-                                  <div className={`w-3.5 h-3.5 border flex items-center justify-center ${form.boutiqueItems.includes(item.key) ? "bg-accent border-accent" : "border-border"}`}>
-                                    {form.boutiqueItems.includes(item.key) && <Check className="w-2.5 h-2.5 text-white" />}
-                                  </div>
-                                  {item.name}
-                                </span>
-                                <span>${item.price}{item.unit || ""}</span>
-                              </button>
-                            ))}
-                          </div>
+                          <label htmlFor="startTime" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Start Time *</label>
+                          <input
+                            id="startTime"
+                            type="time"
+                            value={form.startTime}
+                            onChange={(e) => updateStart(e.target.value)}
+                            className={inputClass("startTime")}
+                          />
                         </div>
+                        <div>
+                          <label htmlFor="endTime" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">End Time *</label>
+                          <input
+                            id="endTime"
+                            type="time"
+                            value={form.endTime}
+                            onChange={(e) => updateForm({ endTime: e.target.value })}
+                            className={inputClass("endTime")}
+                          />
+                        </div>
+                      </div>
+                      {form.blockHours && (
+                        <p className="text-xs text-muted">
+                          {formatTime(form.startTime)} – {formatTime(form.endTime)} · {actualDuration} hr
+                          {actualDuration !== form.blockHours && (
+                            <span className="text-amber-600"> (block: {form.blockHours} hr — adjust times to match)</span>
+                          )}
+                        </p>
                       )}
                     </div>
                   )}
 
-                  {/* STEP 2: Vision */}
-                  {step === 2 && (
+                  {/* STEP 1: Details + Review */}
+                  {step === 1 && (
                     <div className="space-y-8">
-                      <h3 className="font-heading text-2xl text-dark">Your Vision</h3>
                       <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Catering Preference</label>
-                        <select value={form.cateringPref} onChange={(e) => updateForm({ cateringPref: e.target.value })} className={inputClass("cateringPref")}>
-                          <option value="">Select...</option>
-                          <option>No Catering</option><option>Appetizers Only</option><option>Full Dinner</option><option>Brunch</option><option>Custom Menu</option>
-                        </select>
+                        <h3 className="font-heading text-2xl text-dark mb-1">Your Details</h3>
+                        <p className="text-muted text-sm">We&apos;ll use this to confirm your reservation and follow up.</p>
                       </div>
+
                       <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Decor Style</label>
-                        <div className="flex flex-wrap gap-2">
-                          {["Rustic Woodland", "Elegant Classic", "Bohemian", "Minimalist", "Custom"].map((s) => (
-                            <button key={s} type="button" onClick={() => updateForm({ decorStyle: s })}
-                              className={`px-4 py-2.5 text-sm border transition-all ${form.decorStyle === s ? "border-dark text-dark" : "border-border text-muted hover:border-dark"}`}>
-                              {s}
-                            </button>
-                          ))}
+                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Event Type *</label>
+                        <select value={form.eventType} onChange={(e) => updateForm({ eventType: e.target.value })} className={inputClass("eventType")}>
+                          <option value="">Select...</option>
+                          {EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}
+                        </select>
+                        {errors.eventType && <p className="text-red-500 text-xs mt-1">{errors.eventType}</p>}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Guest Count</label>
+                        <div className="flex items-center gap-4">
+                          <button type="button" onClick={() => updateForm({ guestCount: Math.max(1, form.guestCount - 1) })} className="w-8 h-8 border border-border flex items-center justify-center hover:border-accent transition-colors"><Minus className="w-3 h-3" /></button>
+                          <input type="number" value={form.guestCount} onChange={(e) => updateForm({ guestCount: Math.max(1, Math.min(75, Number(e.target.value) || 1)) })} className="w-16 text-center border-b border-border bg-transparent py-2 text-lg font-heading focus:outline-none focus:border-accent" />
+                          <button type="button" onClick={() => updateForm({ guestCount: Math.min(75, form.guestCount + 1) })} className="w-8 h-8 border border-border flex items-center justify-center hover:border-accent transition-colors"><Plus className="w-3 h-3" /></button>
                         </div>
                       </div>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Budget Range</label>
-                        <select value={form.budget} onChange={(e) => updateForm({ budget: e.target.value })} className={inputClass("budget")}>
-                          <option value="">Select...</option>
-                          <option>Under $3,000</option><option>$3,000 - $5,000</option><option>$5,000 - $10,000</option><option>$10,000 - $15,000</option><option>$15,000+</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Special Requests</label>
-                        <textarea value={form.specialRequests} onChange={(e) => updateForm({ specialRequests: e.target.value })} rows={4} placeholder="Tell us about your dream event..." className={inputClass("specialRequests") + " resize-none"} />
-                      </div>
-                      <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">How did you find us?</label>
-                        <select value={form.hearAbout} onChange={(e) => updateForm({ hearAbout: e.target.value })} className={inputClass("hearAbout")}>
-                          <option value="">Select...</option>
-                          <option>Instagram</option><option>Google</option><option>Friend</option><option>Wedding Blog</option><option>Other</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 3: Review & Contact */}
-                  {step === 3 && (
-                    <div className="space-y-8">
-                      <h3 className="font-heading text-2xl text-dark">Review & Contact</h3>
 
                       {user ? (
                         <div className="bg-cream/50 border border-border p-5 text-sm">
                           <p className="text-dark mb-1">Logged in as <span className="font-medium">{user.email}</span></p>
-                          <p className="text-muted text-xs">Your contact info is linked to this account.</p>
                         </div>
                       ) : (
                         <div className="space-y-5">
-                          <p className="text-muted text-sm">Enter your contact details so we can follow up on your booking.</p>
                           <div>
                             <label htmlFor="guestName" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Full Name *</label>
                             <input id="guestName" type="text" required value={form.guestName} onChange={(e) => updateForm({ guestName: e.target.value })} className={inputClass("guestName")} placeholder="Your name" />
@@ -489,42 +335,58 @@ function BookingPageInner() {
                             {errors.guestEmail && <p className="text-red-500 text-xs mt-1">{errors.guestEmail}</p>}
                           </div>
                           <div>
-                            <label htmlFor="guestPhone" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Phone (optional)</label>
-                            <input id="guestPhone" type="tel" value={form.guestPhone} onChange={(e) => updateForm({ guestPhone: e.target.value })} className={inputClass("guestPhone")} placeholder="(555) 000-0000" />
+                            <label htmlFor="guestPhone" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Phone *</label>
+                            <input id="guestPhone" type="tel" required value={form.guestPhone} onChange={(e) => updateForm({ guestPhone: e.target.value })} className={inputClass("guestPhone")} placeholder="(555) 000-0000" />
+                            {errors.guestPhone && <p className="text-red-500 text-xs mt-1">{errors.guestPhone}</p>}
                           </div>
-                          <div className="pt-2">
-                            <button type="button" onClick={() => setAuthOpen(true)} className="text-[11px] tracking-[0.2em] uppercase text-muted hover:text-dark transition-colors">
-                              Already have an account? Sign in
-                            </button>
-                          </div>
+                          <button type="button" onClick={() => setAuthOpen(true)} className="text-[11px] tracking-[0.2em] uppercase text-muted hover:text-dark transition-colors">
+                            Already have an account? Sign in
+                          </button>
                         </div>
                       )}
 
+                      <div>
+                        <label htmlFor="hostMessage" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Message to Host (optional)</label>
+                        <textarea
+                          id="hostMessage"
+                          value={form.notes}
+                          onChange={(e) => updateForm({ notes: e.target.value.slice(0, 2000) })}
+                          rows={4}
+                          maxLength={2000}
+                          placeholder="Anything we should know? Special requests, accessibility needs, arrival details, vendors you're bringing, dietary restrictions..."
+                          className={inputClass("notes") + " resize-none"}
+                        />
+                        <p className="text-[10px] text-muted mt-1">
+                          {form.notes.length > 0 ? `${form.notes.length}/2000 — sent directly to ANEW` : "Sent to your host through Hospitable."}
+                        </p>
+                      </div>
+
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input type="checkbox" checked={form.agreeTerms} onChange={(e) => updateForm({ agreeTerms: e.target.checked })} className="w-4 h-4 mt-0.5 rounded-none border-border text-accent focus:ring-accent" />
-                        <span className="text-sm text-muted">I agree to pay the full amount to secure my reservation. Cancellations 60+ days out receive a 50% refund. Inside 60 days the booking is non-refundable.</span>
+                        <span className="text-sm text-muted">
+                          I agree to pay <span className="text-dark font-medium">${chargeAmount.toLocaleString()}</span> in full to secure my reservation. 50% refundable up to 60 days before arrival; non-refundable inside 60 days.
+                        </span>
                       </label>
                       {errors.agreeTerms && <p className="text-red-500 text-xs">{errors.agreeTerms}</p>}
 
-                      {/* Bot guard */}
                       <div className="flex items-center gap-3 py-4 px-5 border border-border bg-cream/30">
-                        <button type="button" onClick={() => botGuard.setVerified(true)}
-                          className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all ${botGuard.verified ? "border-green-500 bg-green-500" : "border-border hover:border-dark"}`}>
+                        <button type="button" onClick={() => botGuard.setVerified(true)} className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all ${botGuard.verified ? "border-green-500 bg-green-500" : "border-border hover:border-dark"}`}>
                           {botGuard.verified && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                         </button>
                         <span className="text-sm text-muted">{botGuard.verified ? "Verified" : "I'm not a robot"}</span>
                       </div>
+                      {errors.botGuard && <p className="text-red-500 text-xs">{errors.botGuard}</p>}
                       <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
                         <input type="text" name="website" tabIndex={-1} autoComplete="off" onChange={(e) => { botGuard.honeypotRef.current = e.target.value; }} />
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 4: Payment */}
-                  {step === 4 && (
+                  {/* STEP 2: Payment */}
+                  {step === 2 && (
                     <div className="space-y-8">
                       <h3 className="font-heading text-2xl text-dark">Confirm Your Reservation</h3>
-                      <p className="text-muted text-sm">Pay in full to lock in your dates. You&apos;ll receive an email confirmation with all the details.</p>
+                      <p className="text-muted text-sm">Pay in full to lock in your dates. You&apos;ll receive a confirmation email with all the details.</p>
 
                       {submitting ? (
                         <div className="text-center py-12">
@@ -533,28 +395,31 @@ function BookingPageInner() {
                         </div>
                       ) : (
                         <StripePayment
-                          amount={subtotal}
+                          amount={chargeAmount}
                           onSuccess={handlePaymentSuccess}
                           onError={(msg) => setPaymentError(msg)}
                           metadata={{
+                            chargeAmount: String(chargeAmount),
                             eventType: form.eventType,
                             guestCount: String(form.guestCount),
-                            package: form.selectedPackage,
                             arrivalDate: form.selectedDate ? form.selectedDate.toISOString().split("T")[0] : "",
+                            durationHours: String(form.blockHours || ""),
+                            startTime: form.startTime,
+                            endTime: form.endTime,
                             customerEmail: user?.email || form.guestEmail,
                             customerName: user?.displayName || form.guestName,
+                            customerPhone: form.guestPhone,
+                            // Stripe caps metadata values at 500 chars
+                            guestMessage: form.notes.slice(0, 500),
                           }}
                         />
                       )}
-
-                      {paymentError && (
-                        <p className="text-red-500 text-xs text-center">{paymentError}</p>
-                      )}
+                      {paymentError && <p className="text-red-500 text-xs text-center">{paymentError}</p>}
                     </div>
                   )}
 
                   {/* Nav */}
-                  {step < 4 && (
+                  {step < STEPS.length - 1 && (
                     <div className="flex items-center justify-between mt-12 pt-8 border-t border-border">
                       {step > 0 ? (
                         <button type="button" onClick={prev} className="flex items-center gap-1 text-sm text-muted hover:text-dark transition-colors">
@@ -562,11 +427,11 @@ function BookingPageInner() {
                         </button>
                       ) : <div />}
                       <button type="button" onClick={next} className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-8 py-3 hover:bg-accent transition-colors duration-500 flex items-center gap-2">
-                        {step === 3 ? "Proceed to Payment" : "Continue"} <ChevronRight className="w-3 h-3" />
+                        {step === STEPS.length - 2 ? "Proceed to Payment" : "Continue"} <ChevronRight className="w-3 h-3" />
                       </button>
                     </div>
                   )}
-                  {step === 4 && (
+                  {step === STEPS.length - 1 && !submitting && (
                     <div className="flex items-center mt-8 pt-8 border-t border-border">
                       <button type="button" onClick={prev} className="flex items-center gap-1 text-sm text-muted hover:text-dark transition-colors">
                         <ChevronLeft className="w-4 h-4" /> Back
@@ -582,61 +447,24 @@ function BookingPageInner() {
               <div className="sticky top-28 border-l border-border pl-8">
                 <p className="text-[11px] tracking-[0.3em] uppercase text-muted mb-6">Summary</p>
                 <div className="space-y-3 text-sm">
-                  {form.selectedDate && <div className="flex justify-between"><span className="text-muted">Arrival</span><span className="text-dark">{form.selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>}
+                  {form.selectedDate && <div className="flex justify-between"><span className="text-muted">Date</span><span className="text-dark">{form.selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>}
+                  {selectedBlock && <div className="flex justify-between"><span className="text-muted">Block</span><span className="text-dark">{selectedBlock.label}</span></div>}
+                  {form.blockHours && <div className="flex justify-between"><span className="text-muted">Time</span><span className="text-dark">{formatTime(form.startTime)} – {formatTime(form.endTime)}</span></div>}
                   {form.eventType && <div className="flex justify-between"><span className="text-muted">Event</span><span className="text-dark">{form.eventType}</span></div>}
                   <div className="flex justify-between"><span className="text-muted">Guests</span><span className="text-dark">{form.guestCount}</span></div>
-                  {form.duration && <div className="flex justify-between"><span className="text-muted">Duration</span><span className="text-dark capitalize">{durationOptions.find(d => d.value === form.duration)?.label}</span></div>}
-                  {form.setting && <div className="flex justify-between"><span className="text-muted">Setting</span><span className="text-dark">{form.setting}</span></div>}
+                  {form.notes.trim().length > 0 && (
+                    <div className="pt-2">
+                      <span className="text-muted block mb-1">Message to host</span>
+                      <span className="text-dark text-xs whitespace-pre-wrap break-words line-clamp-4">{form.notes}</span>
+                    </div>
+                  )}
                 </div>
-                {form.selectedPackage && (
-                  <>
-                    <div className="border-t border-border my-5" />
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted">Package</span><span className="text-dark">{form.selectedPackage}</span>
-                    </div>
-                    {form.packagePrice > 0 && <div className="flex justify-between text-xs"><span className="text-muted">Base</span><span>${form.packagePrice.toLocaleString()}</span></div>}
-                  </>
-                )}
-                {form.addOns.length > 0 && (
-                  <>
-                    <div className="border-t border-border my-5" />
-                    <p className="text-[10px] tracking-[0.2em] uppercase text-muted mb-2">Add-ons</p>
-                    {form.addOns.map((key) => {
-                      const addon = addOnOptions.find((a) => a.key === key);
-                      if (!addon) return null;
-                      const cost = addon.key === "catering" ? addon.price * form.guestCount : addon.price;
-                      return <div key={key} className="flex justify-between text-xs mb-1"><span className="text-muted">{addon.name}</span><span>${cost.toLocaleString()}</span></div>;
-                    })}
-                  </>
-                )}
-                {selectedChef && (
-                  <>
-                    <div className="border-t border-border my-5" />
-                    <p className="text-[10px] tracking-[0.2em] uppercase text-muted mb-2">Private Chef</p>
-                    <div className="flex justify-between text-xs mb-1"><span className="text-muted">{selectedChef.name}</span><span>${chefTotal.toLocaleString()}</span></div>
-                  </>
-                )}
-                {FEATURES.BOUTIQUE && form.boutiqueItems.length > 0 && (
-                  <>
-                    <div className="border-t border-border my-5" />
-                    <p className="text-[10px] tracking-[0.2em] uppercase text-muted mb-2">Boutique</p>
-                    {form.boutiqueItems.map((key) => {
-                      const item = boutiqueAddOns.find((a) => a.key === key);
-                      if (!item) return null;
-                      return <div key={key} className="flex justify-between text-xs mb-1"><span className="text-muted">{item.name}</span><span>${item.price}</span></div>;
-                    })}
-                  </>
-                )}
-                {subtotal > 0 && (
-                  <>
-                    <div className="border-t border-border my-5" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-dark">Total Due</span>
-                      <span className="font-heading text-2xl text-dark">${subtotal.toLocaleString()}</span>
-                    </div>
-                    <p className="text-[10px] text-muted mt-4 italic">Charged in full at checkout. 50% refundable up to 60 days before arrival.</p>
-                  </>
-                )}
+                <div className="border-t border-border my-5" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-dark">Total Due</span>
+                  <span className="font-heading text-2xl text-dark">${chargeAmount.toLocaleString()}</span>
+                </div>
+                <p className="text-[10px] text-muted mt-4 italic">Charged in full at checkout. 50% refundable up to 60 days before arrival.</p>
               </div>
             </div>
           </div>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FEATURES } from "@/lib/featureFlags";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -77,7 +76,6 @@ export default function Footer() {
                 { label: "The Estate", href: "/venue" },
                 { label: "Experiences", href: "/experiences" },
                 { label: "Gallery", href: "/gallery" },
-                ...(FEATURES.BOUTIQUE ? [{ label: "Boutique", href: "/boutique" }] : []),
                 { label: "Book", href: "/booking" },
               ].map((link) => (
                 <Link

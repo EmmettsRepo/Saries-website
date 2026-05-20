@@ -8,19 +8,13 @@ import { Menu, X, User } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { logOut } from "@/lib/auth";
 import AuthModal from "@/components/AuthModal";
-import { FEATURES } from "@/lib/featureFlags";
 
-const allNavLinks = [
+const navLinks = [
   { label: "About", href: "/venue" },
   { label: "Experiences", href: "/experiences" },
   { label: "Gather", href: "/#events" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Boutique", href: "/boutique", flag: "BOUTIQUE" as const },
 ];
-
-const navLinks = allNavLinks.filter(
-  (link) => !link.flag || FEATURES[link.flag]
-);
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);

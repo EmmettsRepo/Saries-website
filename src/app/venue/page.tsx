@@ -14,8 +14,8 @@ const spaces = [
   { name: "Courtyard & Fire Pit", tag: "Outdoor", capacity: "60 guests", img: "/images/outdoor-firepit-cabin.webp", desc: "An elegant outdoor lounge with a stone fire pit, plush seating, and twinkling string lights — exceptional for evening gatherings." },
   { name: "Ceremony Lawn", tag: "Outdoor", capacity: "75 guests", img: "/images/exterior-wide.jpg", desc: "A manicured lawn flanked by towering trees, creating a natural cathedral. An elevated setting for life's most cherished moments." },
   { name: "Master Suite", tag: "Indoor", capacity: "Private", img: "/images/master-bedroom.jpg", desc: "Reclaimed timber king bed with backlit headboard, ceiling fan, and a warm tile accent wall — the most private room in the estate." },
-  { name: "Queen Suite", tag: "Indoor", capacity: "Private", img: "/images/bedroom-master.webp", desc: "A rope-suspended queen bed beneath a chandelier with vaulted ceilings and exposed beams." },
-  { name: "Bunk Room", tag: "Indoor", capacity: "4 guests", img: "/images/bunkbeds.jpg", desc: "Custom-built reclaimed timber bunk beds with ladder access, sheepskin rug, and cozy loft sleeping — perfect for groups and kids." },
+  { name: "Queen Suite", tag: "Indoor", capacity: "Private", img: "/images/bedroom-master.webp", desc: "A rope-suspended queen bed that swings beneath an ornate chandelier, with vaulted ceilings and exposed beams." },
+  { name: "Bunk Room", tag: "Indoor", capacity: "4 guests", img: "/images/bunkbeds.jpg", desc: "Custom-built reclaimed timber bunk beds with ladder access, plush rug, and cozy loft sleeping — perfect for groups and kids." },
   { name: "Chef's Kitchen", tag: "Indoor", capacity: "Catering ready", img: "/images/kitchen-sink.webp", desc: "Refined craftsmanship meets function — farmhouse sink, copper fixtures, and direct courtyard access for private chefs." },
   { name: "Spa & Wellness Center", tag: "Indoor", capacity: "By appointment", img: "/images/spa-sauna.jpg", desc: "An exceptional on-site retreat featuring sauna, massage therapy, IV therapy treatments, and a private soaking tub — elevated wellness in a natural oasis." },
   { name: "Massage & Treatment Room", tag: "Indoor", capacity: "1-2 guests", img: "/images/bathroom-shower.webp", desc: "An exclusive private treatment space for deep tissue, Swedish, and hot stone massages with licensed therapists." },
@@ -25,7 +25,7 @@ const spaces = [
 
 const faqs = [
   { q: "How far in advance should I book?", a: "We recommend 6-12 months for peak season (May-October). Off-season dates may be available with shorter notice." },
-  { q: "What is the maximum guest count?", a: "Up to 75 guests for events. The estate sleeps up to 10 overnight across 5 bedrooms." },
+  { q: "What is the maximum guest count?", a: "Up to 75 guests for events. The estate sleeps up to 13 overnight across 7 bedrooms." },
   { q: "Are overnight stays included?", a: "Yes — every booking includes an overnight stay. The base rate is $3,000 per night." },
   { q: "What about parking?", a: "On-site parking for up to 20 vehicles. For larger events, we can arrange shuttle service from nearby lots." },
   { q: "Is the venue accessible?", a: "The main floor, Grand Hall, courtyard, and fire pit are all ground-level accessible. Please contact us to discuss specific accessibility needs." },
@@ -62,11 +62,11 @@ export default function VenuePage() {
           <AnimatedSection>
             <div className="flex justify-center gap-16 mb-12">
               <div>
-                <span className="font-heading text-4xl text-dark">5</span>
+                <span className="font-heading text-4xl text-dark">7</span>
                 <p className="text-[11px] tracking-[0.3em] uppercase text-muted mt-1">Bedrooms</p>
               </div>
               <div>
-                <span className="font-heading text-4xl text-dark">4</span>
+                <span className="font-heading text-4xl text-dark">6</span>
                 <p className="text-[11px] tracking-[0.3em] uppercase text-muted mt-1">Bathrooms</p>
               </div>
               <div>
@@ -79,10 +79,13 @@ export default function VenuePage() {
               ANEW is a natural oasis amidst the city — a 5,800 sq ft estate of refined craftsmanship and rustic charm, set on two wooded acres just minutes from Seattle.
             </p>
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-6">
-              The estate features an elevated on-site spa and wellness center with sauna, massage therapy, IV therapy treatments, and a private soaking tub retreat — an exceptional space designed to restore mind and body.
+              The estate features an elevated on-site wellness venue with wet and dry sauna, massage therapy, IV therapy treatments, a workout center, and a private soaking tub retreat — an exceptional space designed to restore mind and body.
+            </p>
+            <p className="text-muted text-base leading-relaxed max-w-xl mx-auto mb-6">
+              The workout center is outfitted with all-in-one Tonal strength training systems, vibration plates, yoga mats, red light therapy panels, and PEMF mats.
             </p>
             <p className="text-muted text-base leading-relaxed max-w-xl mx-auto">
-              Every detail reflects elegant, intentional design — from the hand-forged ironwork to the weathered timber facades. An exclusive setting for celebrations, retreats, and experiences that feel truly exceptional.
+              Every detail reflects elegant, intentional design — from the hand-forged ironwork to the weathered timber facades, finished to non-toxic mineral standards throughout. An exclusive setting for celebrations, retreats, and experiences that feel truly exceptional.
             </p>
           </AnimatedSection>
         </div>

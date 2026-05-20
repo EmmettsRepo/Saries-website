@@ -54,7 +54,39 @@ const experiences = [
     desc: "As the sun sets, gather around the stone fire pit for s'mores, storytelling, and stargazing. Add live acoustic music or a whiskey tasting for an elevated evening.",
     features: ["Fire pit & blankets", "S'mores bar", "Optional live music", "Whiskey or wine tasting add-on"],
     price: "From $45/person",
-    image: "/images/outdoor-firepit-cabin.webp",
+    image: "/images/exterior-courtyard-new.webp",
+  },
+  {
+    title: "Healing Gardens",
+    tagline: "Linger",
+    desc: "A true sensory experience. Wander our natural healing gardens — winding stone paths through ancient cedars, ferns, and rhododendron groves with 10 native edible ground coverings woven throughout the woodland: salal, wintergreen, huckleberries, thimbleberries, loganberries, strawberries, blueberries, salmonberries, and more. Flexible gathering areas along the paths host workshops, classes, and small events.",
+    features: ["Stone garden paths", "10 native edible ground coverings", "Flexible gathering areas for workshops & events", "Cedar grove benches", "Streamside seating", "Open to all guests"],
+    price: "Complimentary for guests",
+    image: "/images/healing-gardens.webp",
+  },
+  {
+    title: "Contrast Therapy Pools",
+    tagline: "Reset",
+    desc: "Alternate between our cedar-lined sauna and twin cold plunge pools, tucked into the forested hillside. A full hot-and-cold circuit to boost circulation, reduce inflammation, and leave you completely renewed.",
+    features: ["Cedar-lined dry sauna", "Twin cold plunge tubs", "Streamside forest setting", "Towels & robes provided"],
+    price: "From $65/person",
+    image: "/images/therapy-pools.webp",
+  },
+  {
+    title: "Games & Recreation",
+    tagline: "Play",
+    desc: "From quiet afternoons to lively group gatherings — chess, bocce ball, basketball, soccer, badminton, ping pong, and a curated collection of board games are all on hand for guests to enjoy.",
+    features: ["Chess & board games", "Bocce ball", "Basketball & soccer", "Badminton & ping pong"],
+    price: "Complimentary for guests",
+    image: "/images/exterior-wide.jpg",
+  },
+  {
+    title: "Boating, Flowers & Art",
+    tagline: "Create",
+    desc: "Spend the day on the water, build a floral arrangement from the garden, settle in for a guided art session, or try a hand-building class — creative experiences designed to slow down and reconnect.",
+    features: ["Boating excursions", "Flower arranging workshops", "Guided art sessions", "Hand-building classes", "All materials provided"],
+    price: "Inquire for pricing",
+    image: "/images/garden-flowers.webp",
   },
 ];
 
@@ -114,7 +146,6 @@ export default function ExperiencesPage() {
                     ))}
                   </div>
                   <div className="flex items-center gap-6">
-                    <span className="font-heading text-lg text-dark">{exp.price}</span>
                     <Link href="/booking" className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors">
                       Inquire
                     </Link>

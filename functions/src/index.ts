@@ -12,13 +12,85 @@ const stripeWebhookSecret = defineString("STRIPE_WEBHOOK_SECRET");
 const hospitableApiToken = defineString("HOSPITABLE_API_TOKEN");
 const hospitablePropertyId = defineString("HOSPITABLE_PROPERTY_ID");
 const hospitableWebhookSecret = defineString("HOSPITABLE_WEBHOOK_SECRET");
+const hospitableWebhookToken = defineString("HOSPITABLE_WEBHOOK_TOKEN");
+const hospitableAccountEmail = defineString("HOSPITABLE_ACCOUNT_EMAIL");
 
-const corsHandler = cors({ origin: true });
+// Hospitable's public webhook source range — published in their SDK docs.
+// All real webhook calls come from this /24.
+const HOSPITABLE_IP_PREFIX = "38.80.170.";
+
+const ALLOWED_ORIGINS = [
+  "https://anewretreatandspa.com",
+  "https://www.anewretreatandspa.com",
+  "https://pnwretreatandspa.com",
+  "https://www.pnwretreatandspa.com",
+  "https://bakkers-website-847ba.web.app",
+  "https://bakkers-website-847ba.firebaseapp.com",
+  "https://anew-admin.web.app",
+  "https://anew-admin.firebaseapp.com",
+  // Local dev
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
+const corsHandler = cors({
+  origin: (origin, callback) => {
+    // Allow same-origin / curl / server-to-server (no Origin header).
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  maxAge: 3600,
+});
 
 const ADMIN_EMAILS = new Set([
   "emmettg@griffithind.com",
   "bakkers4640@gmail.com",
 ]);
+
+// === Rate limiting (Firestore-backed, per IP+endpoint, sliding 1-minute window) ===
+const RATE_LIMITS: Record<string, number> = {
+  createPaymentIntent: 10,
+  submitTour: 5,
+  refundBooking: 30,
+  getAvailability: 60,
+};
+
+function clientIp(req: { headers: Record<string, string | string[] | undefined>; ip?: string }): string {
+  const fwd = req.headers["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
+  if (Array.isArray(fwd) && fwd.length > 0) return String(fwd[0]).split(",")[0].trim();
+  return req.ip || "unknown";
+}
+
+async function enforceRateLimit(endpoint: string, ip: string): Promise<boolean> {
+  const limit = RATE_LIMITS[endpoint] ?? 30;
+  const now = Date.now();
+  const windowMs = 60_000;
+  const key = `${endpoint}:${ip}`;
+  const ref = db.collection("_rate_limits").doc(key);
+  try {
+    const allowed = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? (snap.data() as { windowStart?: number; count?: number }) : null;
+      const windowStart = data?.windowStart ?? 0;
+      const count = data?.count ?? 0;
+      if (now - windowStart > windowMs) {
+        tx.set(ref, { windowStart: now, count: 1, updatedAt: now });
+        return true;
+      }
+      if (count >= limit) return false;
+      tx.set(ref, { windowStart, count: count + 1, updatedAt: now }, { merge: true });
+      return true;
+    });
+    return allowed;
+  } catch (err) {
+    console.error("Rate-limit check failed (fail-open):", err);
+    return true;
+  }
+}
 
 /** Verify the request is from an authorized admin via Firebase ID token. */
 async function requireAdmin(req: { headers: Record<string, string | string[] | undefined> }): Promise<string> {
@@ -43,11 +115,19 @@ export const createPaymentIntent = onRequest((req, res) => {
       return;
     }
 
+    const ip = clientIp(req);
+    if (!(await enforceRateLimit("createPaymentIntent", ip))) {
+      res.status(429).json({ error: "Too many requests" });
+      return;
+    }
+
     try {
       const stripe = new Stripe(stripeSecretKey.value());
-      const { amount, currency = "usd", metadata } = req.body;
+      const body = (req.body || {}) as { amount?: unknown; currency?: unknown; metadata?: unknown };
+      const amount = body.amount;
+      const currency = typeof body.currency === "string" ? body.currency : "usd";
 
-      if (!amount || typeof amount !== "number" || amount < 100) {
+      if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 100) {
         res.status(400).json({ error: "Invalid amount (minimum $1.00)" });
         return;
       }
@@ -56,11 +136,30 @@ export const createPaymentIntent = onRequest((req, res) => {
         res.status(400).json({ error: "Amount exceeds maximum" });
         return;
       }
+      if (!/^[a-z]{3}$/.test(currency)) {
+        res.status(400).json({ error: "Invalid currency" });
+        return;
+      }
+
+      // Sanitize metadata: only string keys/values, cap sizes (Stripe rejects >500 chars).
+      const rawMeta = (body.metadata && typeof body.metadata === "object" ? body.metadata : {}) as Record<string, unknown>;
+      const metadata: Record<string, string> = {};
+      let metaKeys = 0;
+      for (const [k, v] of Object.entries(rawMeta)) {
+        if (metaKeys >= 40) break;
+        if (typeof k !== "string" || k.length > 40) continue;
+        if (v == null) continue;
+        const str = String(v).slice(0, 500);
+        metadata[k] = str;
+        metaKeys++;
+      }
+      metadata.source = "anew-booking";
+      metadata.clientIp = ip;
 
       const paymentIntent = await stripe.paymentIntents.create({
-        amount,
+        amount: Math.round(amount),
         currency,
-        metadata: { ...metadata, source: "anew-booking" },
+        metadata,
       });
 
       res.status(200).json({
@@ -69,8 +168,7 @@ export const createPaymentIntent = onRequest((req, res) => {
       });
     } catch (err) {
       console.error("Stripe error:", err);
-      const message = err instanceof Error ? err.message : "Payment setup failed";
-      res.status(500).json({ error: message });
+      res.status(500).json({ error: "Payment setup failed" });
     }
   });
 });
@@ -126,10 +224,14 @@ export const stripeWebhook = onRequest(
             status: "new",
             email: pi.metadata.customerEmail || pi.receipt_email || "",
             displayName: pi.metadata.customerName || "Recovered Booking",
+            phone: pi.metadata.customerPhone || "",
             eventType: pi.metadata.eventType || "",
             guestCount: Number(pi.metadata.guestCount) || 0,
-            selectedPackage: pi.metadata.package || "",
             selectedDate: pi.metadata.arrivalDate || null,
+            durationHours: Number(pi.metadata.durationHours) || null,
+            startTime: pi.metadata.startTime || "",
+            endTime: pi.metadata.endTime || "",
+            notes: pi.metadata.guestMessage || "",
             paymentIntentId: pi.id,
             paymentStatus: "paid",
             paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -209,21 +311,26 @@ export const refundBooking = onRequest((req, res) => {
       return;
     }
 
-    try {
-      await requireAdmin(req);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unauthorized";
-      res.status(401).json({ error: msg });
+    const ip = clientIp(req);
+    if (!(await enforceRateLimit("refundBooking", ip))) {
+      res.status(429).json({ error: "Too many requests" });
       return;
     }
 
     try {
-      const { bookingId, refundType = "half" } = req.body as {
-        bookingId?: string;
-        refundType?: "half" | "full";
-      };
-      if (!bookingId) {
-        res.status(400).json({ error: "Missing bookingId" });
+      await requireAdmin(req);
+    } catch (err) {
+      console.warn("Unauthorized refund attempt from", ip, err instanceof Error ? err.message : err);
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const body = (req.body || {}) as { bookingId?: unknown; refundType?: unknown };
+      const bookingId = typeof body.bookingId === "string" ? body.bookingId : "";
+      const refundType: "half" | "full" = body.refundType === "full" ? "full" : "half";
+      if (!bookingId || !/^[A-Za-z0-9_-]{1,128}$/.test(bookingId)) {
+        res.status(400).json({ error: "Invalid bookingId" });
         return;
       }
 
@@ -281,6 +388,12 @@ export const getAvailability = onRequest((req, res) => {
       return;
     }
 
+    const ip = clientIp(req);
+    if (!(await enforceRateLimit("getAvailability", ip))) {
+      res.status(429).json({ error: "Too many requests" });
+      return;
+    }
+
     const token = hospitableApiToken.value();
     if (!token) {
       res.status(503).json({ error: "Hospitable not configured" });
@@ -290,13 +403,24 @@ export const getAvailability = onRequest((req, res) => {
     const propertyId = String(req.query.propertyId || "");
     const from = String(req.query.from || "");
     const to = String(req.query.to || "");
-    if (!propertyId || !from || !to) {
-      res.status(400).json({ error: "Missing propertyId, from, or to" });
+    if (!/^[a-f0-9-]{32,40}$/i.test(propertyId)) {
+      res.status(400).json({ error: "Invalid propertyId" });
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      res.status(400).json({ error: "Dates must be YYYY-MM-DD" });
+      return;
+    }
+    // Limit the range we'll proxy (defense-in-depth — Hospitable handles months, not years).
+    const fromTs = Date.parse(from);
+    const toTs = Date.parse(to);
+    if (!Number.isFinite(fromTs) || !Number.isFinite(toTs) || toTs < fromTs || toTs - fromTs > 1000 * 60 * 60 * 24 * 90) {
+      res.status(400).json({ error: "Invalid date range (max 90 days)" });
       return;
     }
 
     try {
-      const url = `https://public.api.hospitable.com/v2/calendar?property_id=${propertyId}&start_date=${from}&end_date=${to}`;
+      const url = `https://public.api.hospitable.com/v2/properties/${encodeURIComponent(propertyId)}/calendar?start_date=${encodeURIComponent(from)}&end_date=${encodeURIComponent(to)}`;
       const r = await fetch(url, {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
@@ -307,17 +431,26 @@ export const getAvailability = onRequest((req, res) => {
         return;
       }
       const json = await r.json() as {
-        data?: Array<{
-          date: string; available?: boolean; status?: string;
-          price?: { amount?: number }; min_nights?: number;
-        }>;
+        data?: {
+          days?: Array<{
+            date: string;
+            min_stay?: number;
+            closed_for_checkin?: boolean;
+            closed_for_checkout?: boolean;
+            status?: { available?: boolean; reason?: string };
+            price?: { amount?: number };
+          }>;
+        };
       };
-      const days = (json.data || []).map((d) => {
+      const days = (json.data?.days || []).map((d) => {
+        const available = d.status?.available;
         let status: "available" | "limited" | "booked";
-        if (d.available === false || d.status === "reserved" || d.status === "unavailable") status = "booked";
-        else if (d.status === "available" || d.available === true) status = "available";
+        if (available === false) status = "booked";
+        else if (available === true) status = "available";
         else status = "limited";
-        return { date: d.date, status, price: d.price?.amount, minNights: d.min_nights };
+        // Hospitable returns price.amount in cents (300000 = $3000). Convert to whole dollars.
+        const priceDollars = typeof d.price?.amount === "number" ? Math.round(d.price.amount / 100) : undefined;
+        return { date: d.date, status, price: priceDollars, minNights: d.min_stay };
       });
       res.status(200).json({ days });
     } catch (err) {
@@ -347,7 +480,8 @@ async function pushReservationToHospitable(
     return;
   }
 
-  // Default to 1-night stay; admin can extend in Hospitable dashboard
+  // For sub-24hr blocks we still book the calendar day to prevent double-booking.
+  // Hospitable v2 requires check_out > check_in, so check_out = arrival + 1 always.
   const checkIn = new Date(arrival);
   const checkOut = new Date(checkIn);
   checkOut.setDate(checkOut.getDate() + 1);
@@ -356,9 +490,25 @@ async function pushReservationToHospitable(
   const guestEmail = (booking.email as string) || "";
   const guestPhone = (booking.phone as string) || (booking.guestPhone as string) || "";
   const guestCount = (booking.guestCount as number) || 2;
+  const durationHours = (booking.durationHours as number) || 24;
+  const startTime = (booking.startTime as string) || "";
+  const endTime = (booking.endTime as string) || "";
+  const eventType = (booking.eventType as string) || "stay";
+  const amountPaid = ((booking.stripeAmount as number) || 0) / 100;
+
+  const timeWindow = startTime && endTime ? ` ${startTime}–${endTime}` : "";
+  const notes = [
+    `Booked via anewretreatandspa.com`,
+    `Booking ID: ${bookingId}`,
+    `Event: ${eventType}`,
+    `Block: ${durationHours}hr${timeWindow}`,
+    `Guests: ${guestCount}`,
+    `Paid: $${amountPaid}`,
+    booking.notes ? `Notes: ${booking.notes}` : "",
+  ].filter(Boolean).join(" | ");
 
   const payload = {
-    property_id: propertyId,
+    properties: [propertyId],
     check_in: checkIn.toISOString().split("T")[0],
     check_out: checkOut.toISOString().split("T")[0],
     guest: {
@@ -369,9 +519,10 @@ async function pushReservationToHospitable(
     },
     number_of_guests: guestCount,
     source: "direct",
-    notes: `Booked via anewretreatandspa.com. Booking ID: ${bookingId}. Event: ${booking.eventType || "stay"}. Paid: $${((booking.stripeAmount as number) || 0) / 100}.`,
+    notes,
     confirmation_status: "confirmed",
   };
+  console.log(`Pushing reservation to Hospitable: booking=${bookingId} property=${propertyId} check_in=${payload.check_in} check_out=${payload.check_out} guests=${payload.number_of_guests}`);
 
   const r = await fetch("https://public.api.hospitable.com/v2/reservations", {
     method: "POST",
@@ -408,80 +559,206 @@ export const hospitableWebhook = onRequest(
       return;
     }
 
-    // Verify webhook signature (Hospitable signs with HMAC-SHA256)
-    const secret = hospitableWebhookSecret.value();
-    if (secret) {
-      const signature = req.headers["x-hospitable-signature"];
-      if (!signature || typeof signature !== "string") {
-        res.status(401).send("Missing signature");
-        return;
+    // Verify the request came from Hospitable.
+    //
+    // Per Hospitable's published spec (see hospitable-python SDK
+    // docs/webhooks.md), customer-plan webhooks are HMAC-SHA256 signed with
+    // a secret = base64(primary_account_email). The signature comes in the
+    // `Signature` header. As defense-in-depth we also require the source IP
+    // to fall within Hospitable's published webhook range 38.80.170.0/24.
+    const ip = clientIp(req);
+    const fromHospitableIp = ip.startsWith(HOSPITABLE_IP_PREFIX);
+
+    const crypto = await import("crypto");
+    const accountEmail = hospitableAccountEmail.value();
+    const explicitSecret = hospitableWebhookSecret.value();
+    const fallbackToken = hospitableWebhookToken.value();
+
+    const rawSig = req.headers["signature"] ?? req.headers["x-hospitable-signature"];
+    const signature = Array.isArray(rawSig) ? rawSig[0] : rawSig;
+
+    let verified = false;
+    let verifiedVia = "";
+
+    if (typeof signature === "string" && signature.length > 0) {
+      const sig = signature.startsWith("sha256=") ? signature.slice(7) : signature;
+      const sigBuf = Buffer.from(sig, "hex");
+
+      // Candidate keys, in order of preference.
+      const candidates: Array<[string, string]> = [];
+      if (accountEmail) {
+        const emailKey = Buffer.from(accountEmail).toString("base64");
+        candidates.push([`email_b64(${accountEmail})`, emailKey]);
       }
-      const crypto = await import("crypto");
-      const expected = crypto
-        .createHmac("sha256", secret)
-        .update(req.rawBody)
-        .digest("hex");
-      if (signature !== expected) {
-        console.error("Hospitable webhook signature mismatch");
-        res.status(401).send("Invalid signature");
-        return;
+      if (explicitSecret) candidates.push(["webhook_secret", explicitSecret]);
+
+      for (const [label, key] of candidates) {
+        try {
+          const expected = crypto.createHmac("sha256", key).update(req.rawBody).digest("hex");
+          const expBuf = Buffer.from(expected, "hex");
+          if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+            verified = true;
+            verifiedVia = `hmac:${label}`;
+            break;
+          }
+        } catch { /* ignore individual candidate failures */ }
+      }
+
+      if (!verified) {
+        const previews: Record<string, string> = {};
+        for (const [label, key] of candidates) {
+          try {
+            previews[label] = crypto.createHmac("sha256", key).update(req.rawBody).digest("hex").slice(0, 12);
+          } catch { /* ignore */ }
+        }
+        console.warn(
+          "Hospitable signature mismatch",
+          JSON.stringify({
+            ip,
+            fromHospitableIp,
+            url: req.originalUrl || req.url,
+            sigPrefix: sig.slice(0, 12),
+            sigLen: sig.length,
+            sigHasShaPrefix: signature.startsWith("sha256="),
+            bodyLen: req.rawBody?.length ?? 0,
+            triedKeys: candidates.map(([l]) => l),
+            computedPrefixes: previews,
+          })
+        );
       }
     }
 
-    const event = req.body as {
-      event?: string;
-      data?: {
-        id?: string;
-        property_id?: string;
-        check_in?: string;
-        check_out?: string;
-        status?: string;
-        source?: string;
-        guest?: { first_name?: string; last_name?: string; email?: string; phone?: string };
-        number_of_guests?: number;
-        total?: number;
-      };
+    if (!verified && fallbackToken) {
+      const headerToken = req.headers["x-webhook-token"];
+      const authHeader = req.headers["authorization"];
+      let provided = "";
+      if (typeof req.query.token === "string") provided = req.query.token;
+      else if (typeof headerToken === "string") provided = headerToken;
+      else if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) provided = authHeader.slice(7);
+
+      const provBuf = Buffer.from(provided);
+      const expBuf = Buffer.from(fallbackToken);
+      if (provBuf.length === expBuf.length && crypto.timingSafeEqual(provBuf, expBuf)) {
+        verified = true;
+        verifiedVia = "token";
+      }
+    }
+
+    if (!verified) {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    // Defense-in-depth: even with a valid signature, refuse traffic that
+    // doesn't originate from Hospitable's published webhook IP range.
+    // (Skipped for local-token verification — useful for local testing.)
+    if (verifiedVia.startsWith("hmac:") && !fromHospitableIp) {
+      console.warn(`Verified signature but unexpected source IP: ${ip}`);
+      res.status(403).send("Forbidden source");
+      return;
+    }
+
+    console.log(`Hospitable webhook verified via ${verifiedVia}`);
+
+    // Hospitable payload shape (per their published spec):
+    //   { id, action, data, created, version }
+    // `action` is the event type (e.g. "reservation.created").
+    const payload = req.body as {
+      id?: string;
+      action?: string;
+      data?: Record<string, unknown>;
+      created?: string;
+      version?: string;
     };
 
-    if (!event.event || !event.data) {
+    const action = payload.action;
+    const data = payload.data;
+    if (!action || !data) {
+      console.warn("Hospitable webhook: invalid payload shape", {
+        hasAction: !!action,
+        hasData: !!data,
+        keys: Object.keys(payload || {}),
+      });
       res.status(400).send("Invalid payload");
       return;
     }
 
-    console.log(`Hospitable event: ${event.event}`);
+    console.log(`Hospitable event: ${action} (id=${payload.id ?? "?"})`);
+
+    const fallbackDocId = (payload.id || "").trim();
+    function pickId(d: Record<string, unknown>): string {
+      const candidates = ["id", "uuid", "code", "reservation_id", "message_id", "review_id"];
+      for (const k of candidates) {
+        const v = d[k];
+        if (typeof v === "string" && v.trim().length > 0) return v.trim();
+      }
+      return fallbackDocId;
+    }
 
     try {
-      switch (event.event) {
+      switch (action) {
         case "reservation.created":
+        case "reservation.updated":
         case "reservation.confirmed": {
-          const d = event.data;
-          // Only record bookings that came from external channels (Airbnb, VRBO, etc.)
-          // Our own direct bookings already exist in booking_inquiries.
-          if (d.source && d.source !== "direct") {
-            await db.collection("external_bookings").doc(d.id || "").set({
-              source: d.source,
-              hospitableReservationId: d.id,
-              propertyId: d.property_id,
-              checkIn: d.check_in,
-              checkOut: d.check_out,
-              status: d.status,
-              guestName: `${d.guest?.first_name || ""} ${d.guest?.last_name || ""}`.trim(),
-              guestEmail: d.guest?.email || "",
-              guestPhone: d.guest?.phone || "",
-              guestCount: d.number_of_guests,
-              total: d.total,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              type: "external_booking",
-            }, { merge: true });
+          const d = data as {
+            id?: string;
+            code?: string;
+            property_id?: string;
+            check_in?: string;
+            check_out?: string;
+            status?: string;
+            channel?: { name?: string };
+            source?: string;
+            guest?: { first_name?: string; last_name?: string; email?: string; phone?: string };
+            guests?: { adults?: number; children?: number; infants?: number };
+            number_of_guests?: number;
+            total?: number;
+            money?: { host_payout?: { amount?: number } };
+          };
+          const reservationId = pickId(d as Record<string, unknown>);
+          if (!reservationId) {
+            console.warn("Hospitable reservation event missing id/code, skipping");
+            break;
+          }
+          // Direct bookings already exist in booking_inquiries (created by our
+          // own flow). External channel bookings (Airbnb, VRBO, etc.) go into
+          // external_bookings so the admin sees the full calendar.
+          const channelName = d.channel?.name || d.source || "unknown";
+          const isDirect = channelName.toLowerCase() === "direct";
+          if (!isDirect) {
+            const guestCount =
+              d.number_of_guests ??
+              (d.guests ? (d.guests.adults || 0) + (d.guests.children || 0) : undefined);
+            await db.collection("external_bookings").doc(reservationId).set(
+              {
+                source: channelName,
+                hospitableReservationId: reservationId,
+                propertyId: d.property_id,
+                checkIn: d.check_in,
+                checkOut: d.check_out,
+                status: d.status,
+                guestName: `${d.guest?.first_name || ""} ${d.guest?.last_name || ""}`.trim(),
+                guestEmail: d.guest?.email || "",
+                guestPhone: d.guest?.phone || "",
+                guestCount,
+                total: d.total ?? d.money?.host_payout?.amount,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                type: "external_booking",
+                lastAction: action,
+              },
+              { merge: true }
+            );
           }
           break;
         }
         case "reservation.cancelled": {
-          const d = event.data;
-          // Find the matching booking — could be in either collection
+          const d = data as { id?: string; code?: string };
+          const reservationId = pickId(d as Record<string, unknown>);
+          if (!reservationId) break;
           const snap = await db
             .collection("booking_inquiries")
-            .where("hospitableReservationId", "==", d.id)
+            .where("hospitableReservationId", "==", reservationId)
             .limit(1)
             .get();
           if (!snap.empty) {
@@ -490,15 +767,71 @@ export const hospitableWebhook = onRequest(
               cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
             });
           } else {
-            await db.collection("external_bookings").doc(d.id || "").set({
-              status: "cancelled",
-              cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
+            await db.collection("external_bookings").doc(reservationId).set(
+              {
+                status: "cancelled",
+                cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+              },
+              { merge: true }
+            );
           }
           break;
         }
+        case "message.created": {
+          const d = data as {
+            id?: string;
+            reservation_id?: string;
+            body?: string;
+            sender_type?: string;
+            sender_name?: string;
+            created_at?: string;
+          };
+          const messageId = pickId(d as Record<string, unknown>);
+          if (!messageId) {
+            console.warn("Hospitable message.created missing id, skipping", { dataKeys: Object.keys(data) });
+            break;
+          }
+          await db.collection("guest_messages").doc(messageId).set(
+            {
+              hospitableMessageId: messageId,
+              reservationId: d.reservation_id,
+              body: (d.body || "").slice(0, 10000),
+              senderType: d.sender_type,
+              senderName: d.sender_name,
+              sentAt: d.created_at,
+              receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+              rawDataKeys: Object.keys(data).join(","),
+            },
+            { merge: true }
+          );
+          break;
+        }
+        case "review.created": {
+          const d = data as { id?: string; reservation_id?: string; rating?: number; public_review?: string };
+          const reviewId = pickId(d as Record<string, unknown>);
+          if (!reviewId) {
+            console.warn("Hospitable review.created missing id, skipping");
+            break;
+          }
+          await db.collection("guest_reviews").doc(reviewId).set(
+            {
+              hospitableReviewId: reviewId,
+              reservationId: d.reservation_id,
+              rating: d.rating,
+              review: (d.public_review || "").slice(0, 10000),
+              receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+          break;
+        }
+        case "property.updated":
+        case "property.merged":
+          // Currently informational — log but don't persist.
+          console.log(`Property change acknowledged: ${action}`);
+          break;
         default:
-          console.log(`Unhandled Hospitable event: ${event.event}`);
+          console.log(`Unhandled Hospitable event: ${action}`);
       }
 
       res.status(200).json({ received: true });
@@ -508,3 +841,170 @@ export const hospitableWebhook = onRequest(
     }
   }
 );
+
+// ============================================================================
+// TOUR: Submit tour request — writes Firestore + pushes inquiry to Hospitable
+// ============================================================================
+interface TourPayload {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  date?: string;
+  time?: string;
+  message?: string;
+  honeypot?: string;
+}
+
+export const submitTour = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const ip = clientIp(req);
+    if (!(await enforceRateLimit("submitTour", ip))) {
+      res.status(429).json({ error: "Too many requests" });
+      return;
+    }
+
+    try {
+      const body = (req.body || {}) as TourPayload;
+
+      // Honeypot field — bots fill it, humans don't.
+      if (body.honeypot) {
+        res.status(200).json({ success: true });
+        return;
+      }
+
+      const firstName = (body.firstName || "").trim().slice(0, 100);
+      const lastName = (body.lastName || "").trim().slice(0, 100);
+      const email = (body.email || "").trim().slice(0, 254).toLowerCase();
+      const phone = (body.phone || "").trim().slice(0, 30);
+      const date = (body.date || "").trim();
+      const time = (body.time || "").trim().slice(0, 10);
+      const message = (body.message || "").trim().slice(0, 2000);
+
+      if (!firstName || !email || !date) {
+        res.status(400).json({ error: "firstName, email, and date are required" });
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ error: "Invalid email" });
+        return;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        res.status(400).json({ error: "Date must be YYYY-MM-DD" });
+        return;
+      }
+      if (phone && !/^[\d\s+()\-.]{7,30}$/.test(phone)) {
+        res.status(400).json({ error: "Invalid phone" });
+        return;
+      }
+      const dateTs = Date.parse(date);
+      const now = Date.now();
+      if (!Number.isFinite(dateTs) || dateTs < now - 1000 * 60 * 60 * 24 || dateTs > now + 1000 * 60 * 60 * 24 * 365 * 3) {
+        res.status(400).json({ error: "Date out of range" });
+        return;
+      }
+
+      const doc = await db.collection("tour_requests").add({
+        firstName,
+        lastName,
+        email,
+        phone,
+        date,
+        time,
+        message,
+        type: "tour",
+        status: "new",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      let hospitableId: string | null = null;
+      try {
+        hospitableId = await pushTourToHospitable(doc.id, {
+          firstName, lastName, email, phone, date, time, message,
+        });
+        if (hospitableId) {
+          await doc.update({
+            hospitableReservationId: hospitableId,
+            hospitableSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        console.error("Tour Hospitable push failed:", err);
+      }
+
+      res.status(200).json({ success: true, tourId: doc.id, hospitableId });
+    } catch (err) {
+      console.error("submitTour error:", err);
+      const message = err instanceof Error ? err.message : "Tour submission failed";
+      res.status(500).json({ error: message });
+    }
+  });
+});
+
+async function pushTourToHospitable(
+  tourId: string,
+  tour: { firstName: string; lastName: string; email: string; phone: string; date: string; time: string; message: string }
+): Promise<string | null> {
+  const token = hospitableApiToken.value();
+  const propertyId = hospitablePropertyId.value();
+  if (!token || !propertyId) {
+    console.log("Hospitable not configured — skipping tour push");
+    return null;
+  }
+
+  // Tour inquiry: 1-night placeholder on the requested date.
+  // confirmation_status="inquiry" so the admin sees the request without blocking
+  // the calendar. Admin can promote to confirmed if they accept.
+  const checkIn = new Date(tour.date);
+  const checkOut = new Date(checkIn);
+  checkOut.setDate(checkOut.getDate() + 1);
+
+  const notes = [
+    `TOUR REQUEST via anewretreatandspa.com`,
+    `Tour ID: ${tourId}`,
+    tour.time ? `Requested time: ${tour.time}` : "",
+    `Email: ${tour.email}`,
+    tour.phone ? `Phone: ${tour.phone}` : "",
+    tour.message ? `Message: ${tour.message}` : "",
+  ].filter(Boolean).join(" | ");
+
+  const payload = {
+    properties: [propertyId],
+    check_in: checkIn.toISOString().split("T")[0],
+    check_out: checkOut.toISOString().split("T")[0],
+    guest: {
+      first_name: tour.firstName || "Tour",
+      last_name: tour.lastName || "Guest",
+      email: tour.email,
+      phone: tour.phone,
+    },
+    number_of_guests: 1,
+    source: "direct",
+    notes,
+    confirmation_status: "inquiry",
+  };
+
+  const r = await fetch("https://public.api.hospitable.com/v2/reservations", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    console.error(`Hospitable tour push ${r.status}: ${text}`);
+    return null;
+  }
+
+  const result = await r.json() as { data?: { id?: string; code?: string } };
+  return result.data?.id || result.data?.code || null;
+}

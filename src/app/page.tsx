@@ -11,15 +11,18 @@ import Tilt3D from "@/components/Tilt3D";
 import HandDrawnDivider from "@/components/HandDrawnDivider";
 import CornerAccent from "@/components/CornerAccent";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
-import { submitTourRequest } from "@/lib/submissions";
 import { useBotGuard } from "@/components/BotGuard";
 
+const FUNCTIONS_URL =
+  process.env.NEXT_PUBLIC_FUNCTIONS_URL ||
+  "https://us-central1-bakkers-website-847ba.cloudfunctions.net";
 
 export default function HomePage() {
   const router = useRouter();
-  const [tourForm, setTourForm] = useState({ firstName: "", lastName: "", email: "", phone: "", date: "", message: "" });
+  const [tourForm, setTourForm] = useState({ firstName: "", lastName: "", email: "", phone: "", date: "", time: "", message: "" });
   const [tourSubmitted, setTourSubmitted] = useState(false);
   const [tourSubmitting, setTourSubmitting] = useState(false);
+  const [tourError, setTourError] = useState<string | null>(null);
   const tourBot = useBotGuard();
   const [showStickyBar, setShowStickyBar] = useState(false);
   useEffect(() => {
@@ -30,15 +33,33 @@ export default function HomePage() {
 
   const handleTourSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tourForm.firstName || !tourForm.email) return;
-    if (tourBot.isBot()) return;
+    setTourError(null);
+    if (!tourForm.firstName || !tourForm.email || !tourForm.date) {
+      setTourError("Name, email, and date are required.");
+      return;
+    }
+    if (!tourBot.verified || tourBot.isBot()) {
+      setTourError("Please verify you're not a robot.");
+      return;
+    }
     setTourSubmitting(true);
     try {
-      await submitTourRequest(tourForm);
+      const res = await fetch(`${FUNCTIONS_URL}/submitTour`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...tourForm,
+          honeypot: tourBot.honeypotRef.current || "",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Submission failed");
+      }
       setTourSubmitted(true);
     } catch (err) {
       console.error(err);
-      setTourSubmitted(false);
+      setTourError(err instanceof Error ? err.message : "Submission failed");
     } finally {
       setTourSubmitting(false);
     }
@@ -128,23 +149,29 @@ export default function HomePage() {
       </section>
 
       {/* ===== INTRO ===== */}
-      <section className="py-36 sm:py-48 px-6">
+      <section className="pt-12 pb-20 sm:pt-16 sm:pb-28 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <AnimatedSection>
             <HandDrawnDivider variant="botanical" className="mb-10" />
             <h2 className="font-heading text-3xl sm:text-4xl md:text-[2.75rem] leading-[1.35] text-dark mb-10 font-normal">
-              ANEW is a 5,800 sq ft retreat and spa on two wooded acres in Kenmore, WA — a place for weddings, wellness retreats, corporate escapes, and celebrations.
+              ANEW is a 5,800 sq ft retreat and spa on two woodland acres with a babbling brook that runs throughout the private estate — a place for weddings, wellness retreats, corporate escapes, and celebrations.
             </h2>
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-[11px] tracking-[0.3em] uppercase text-muted">
-              <span>5,800 sq ft</span>
+              <span>7 bedrooms</span>
               <span className="text-accent">·</span>
-              <span>5 bedrooms</span>
+              <span>White sandy beach</span>
               <span className="text-accent">·</span>
-              <span>2 acres</span>
+              <span>Private stream</span>
               <span className="text-accent">·</span>
-              <span>Private creek</span>
+              <span>Spa</span>
               <span className="text-accent">·</span>
-              <span>On-site spa</span>
+              <span>Wellness retreats</span>
+              <span className="text-accent">·</span>
+              <span>Immersions</span>
+              <span className="text-accent">·</span>
+              <span>Thermal pools</span>
+              <span className="text-accent">·</span>
+              <span>Wet &amp; dry sauna</span>
             </div>
           </AnimatedSection>
         </div>
@@ -252,13 +279,15 @@ export default function HomePage() {
         <div className="px-6 lg:px-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[
-              { img: "/images/master-bedroom.jpg", name: "Master Suite", desc: "Reclaimed timber king bed with backlit headboard and tile accent wall" },
-              { img: "/images/bunkbeds.jpg", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, sheepskin rug, and reclaimed wood throughout" },
-              { img: "/images/bedroom-master.webp", name: "Queen Suite", desc: "Rope-suspended queen bed, chandelier, and vaulted ceilings" },
-              { img: "/images/bathroom-soaker.webp", name: "Spa Bathroom", desc: "Freestanding soaker tub with exposed beam and garden views" },
-              { img: "/images/bathroom-shower.webp", name: "Rain Shower Suite", desc: "Glass walk-in shower with natural stone and soaking tub" },
-              { img: "/images/interior-openplan.webp", name: "Open Living", desc: "Kitchen, dining, and living spaces flow beneath timber beams" },
-              { img: "/images/hallway-barndoors.webp", name: "Gallery Hallway", desc: "Glass railings, barn doors, and forest views at every turn" },
+              { img: "/images/bedroom-garden.webp", name: "Garden Suite", desc: "King bed with French doors opening to the garden patio and a private en-suite rain shower", position: "calc(100% + 50px) center" },
+              { img: "/images/master-bedroom.jpg", name: "Master Suite", desc: "Reclaimed king bed, vaulted beam ceiling, and warm bedside lighting" },
+              { img: "/images/bunkbeds.jpg", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, reclaimed wood throughout, and beautiful garden views" },
+              { img: "/images/bedroom-master.webp", name: "Queen Suite", desc: "Rope-suspended queen bed that swings, ornate chandelier, and vaulted ceilings" },
+              { img: "/images/bedroom-hearth.webp", name: "Guest Cottage", desc: "Private guest cottage with a queen bed and three twins, exposed beams, a wood-burning stove, full kitchen, and pebbled rain shower" },
+              { img: "/images/bathroom-soaker.webp", name: "Private Bath", desc: "Private soaking bath with exposed beam and garden views" },
+              { img: "/images/bathroom-shower.webp", name: "Rain Shower Suite", desc: "Glass walk-in shower with natural stone and soaking tub, complete with a relaxing wet sauna" },
+              { img: "/images/interior-openplan.webp", name: "Open Living", desc: "Kitchen, dining, and living area flow beneath timber beams with a barn wood coffered ceiling" },
+              { img: "/images/hallway-barndoors.webp", name: "Gallery Hallway", desc: "Glass railings, sliding barn doors, and gorgeous woodland views at every turn" },
             ].map((room, i) => (
               <AnimatedSection key={room.name} delay={i * 0.08}>
                 <div className="w-full group cursor-pointer card-3d">
@@ -268,6 +297,7 @@ export default function HomePage() {
                       alt={room.name}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      style={"position" in room ? { objectPosition: (room as { position: string }).position } : undefined}
                     />
                   </div>
                   <h4 className="font-heading text-xl text-dark mb-1">{room.name}</h4>
@@ -330,7 +360,7 @@ export default function HomePage() {
               The estate&apos;s commercial-grade kitchen features a farmhouse sink, copper fixtures, and direct courtyard access — ready for your private chef or preferred caterer.
             </p>
             <p className="text-muted leading-relaxed mb-8 text-[15px]">
-              Seasonal, locally sourced menus featuring fresh salmon, garden vegetables, and artisan preparations. From intimate plated dinners to relaxed family-style feasts under the stars.
+              Seasonal, locally sourced menus featuring fresh salmon, garden vegetables, and artisan preparations. From intimate plated dinners to relaxed family-style feasts under the stars. Allergy-specific menus available on request, alongside fresh-pressed juicing and hands-on cooking classes.
             </p>
             <div className="flex items-center gap-6">
               <Link
@@ -367,9 +397,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             {[
-              { img: "/images/exterior-courtyard-new.jpg", title: "Weddings", desc: "Ceremony lawns flanked by towering trees, fire pit receptions under string lights, and five bedrooms for the wedding party." },
-              { img: "/images/interior-wide.jpg", title: "Retreats", desc: "Inspire your team in a setting that sparks creativity. The Grand Hall, breakout spaces, and nature trails await." },
-              { img: "/images/outdoor-seating.jpg", title: "Celebrations", desc: "Birthdays, anniversaries, holiday gatherings — intimate or grand, every milestone finds its home at ANEW." },
+              { img: "/images/exterior-hero.webp", title: "Weddings", desc: "Ceremony lawns flanked by towering trees, fire copper bowl receptions under string lights, and 13 beds for the wedding party." },
+              { img: "/images/interior-living-wide.webp", title: "Retreats", desc: "Inspire your team in a setting that sparks creativity. The Grand Hall, breakout spaces, and nature trails await." },
+              { img: "/images/outdoor-seating.jpg", title: "Celebrations", desc: "The ultimate grounding experience for outdoor enthusiasts — natural yoga, open-air dining, birthday celebrations, and a cozy spot for s'mores by the fire." },
             ].map((card, i) => (
               <AnimatedSection key={card.title} delay={i * 0.12}>
                 <div className="group cursor-pointer depth-float">
@@ -415,6 +445,11 @@ export default function HomePage() {
                 router.push(`/booking?date=${y}-${m}-${d}`);
               }}
             />
+          </AnimatedSection>
+          <AnimatedSection className="text-center mt-14">
+            <p className="text-muted text-[15px] leading-relaxed max-w-2xl mx-auto">
+              ANEW Retreat &amp; Spa is a distinctive retreat destination in the Pacific Northwest — a property that guests return to, that retreat leaders cultivate programs around, and that the wellness travel community recognizes as something genuinely rare.
+            </p>
           </AnimatedSection>
         </div>
       </section>
@@ -532,19 +567,28 @@ export default function HomePage() {
           <AnimatedSection direction="right">
             {tourSubmitted ? (
               <div className="text-center py-12">
-                <p className="font-heading text-2xl text-dark mb-3">Thank You</p>
-                <p className="text-muted text-sm">We&apos;ll be in touch shortly to schedule your tour.</p>
+                <p className="font-heading text-2xl text-dark mb-3">Tour Request Received</p>
+                <p className="text-muted text-sm">We&apos;ll confirm your tour by email within one business day.</p>
               </div>
             ) : (
               <form onSubmit={handleTourSubmit} className="space-y-5">
                 <div className="grid sm:grid-cols-2 gap-5">
-                  <input type="text" placeholder="First Name" required value={tourForm.firstName} onChange={(e) => setTourForm({ ...tourForm, firstName: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
+                  <input type="text" placeholder="First Name *" required value={tourForm.firstName} onChange={(e) => setTourForm({ ...tourForm, firstName: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
                   <input type="text" placeholder="Last Name" value={tourForm.lastName} onChange={(e) => setTourForm({ ...tourForm, lastName: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
                 </div>
-                <input type="email" placeholder="Email" required value={tourForm.email} onChange={(e) => setTourForm({ ...tourForm, email: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
+                <input type="email" placeholder="Email *" required value={tourForm.email} onChange={(e) => setTourForm({ ...tourForm, email: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
                 <input type="tel" placeholder="Phone" value={tourForm.phone} onChange={(e) => setTourForm({ ...tourForm, phone: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors" />
-                <input type="date" min={new Date().toISOString().split('T')[0]} value={tourForm.date} onChange={(e) => setTourForm({ ...tourForm, date: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-muted focus:outline-none focus:border-accent transition-colors" />
-                <textarea placeholder="Tell us about your event" rows={4} value={tourForm.message} onChange={(e) => setTourForm({ ...tourForm, message: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors resize-none" />
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label htmlFor="tourDate" className="text-[10px] tracking-[0.2em] uppercase text-muted block mb-1">Preferred Date *</label>
+                    <input id="tourDate" type="date" required min={new Date().toISOString().split('T')[0]} value={tourForm.date} onChange={(e) => setTourForm({ ...tourForm, date: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark focus:outline-none focus:border-accent transition-colors" />
+                  </div>
+                  <div>
+                    <label htmlFor="tourTime" className="text-[10px] tracking-[0.2em] uppercase text-muted block mb-1">Preferred Time</label>
+                    <input id="tourTime" type="time" value={tourForm.time} onChange={(e) => setTourForm({ ...tourForm, time: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark focus:outline-none focus:border-accent transition-colors" />
+                  </div>
+                </div>
+                <textarea placeholder="Anything we should know? (optional)" rows={3} value={tourForm.message} onChange={(e) => setTourForm({ ...tourForm, message: e.target.value })} className="w-full border-b border-border bg-transparent py-3 text-sm text-dark placeholder-muted focus:outline-none focus:border-accent transition-colors resize-none" />
                 {/* Bot guard */}
                 <div className="flex items-center gap-3 py-3 px-4 border border-border bg-cream/30">
                   <button type="button" onClick={() => tourBot.setVerified(true)}
@@ -556,6 +600,7 @@ export default function HomePage() {
                 <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
                   <input type="text" name="website" tabIndex={-1} autoComplete="off" onChange={(e) => { tourBot.honeypotRef.current = e.target.value; }} />
                 </div>
+                {tourError && <p className="text-red-500 text-xs">{tourError}</p>}
                 <button type="submit" disabled={tourSubmitting} className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-10 py-3.5 hover:bg-accent transition-colors duration-500 mt-4 disabled:opacity-50">
                   {tourSubmitting ? "Sending..." : "Request a Tour"}
                 </button>

@@ -152,8 +152,8 @@ export default function StripePayment({
             confirmation email with all the details.
           </p>
           <p className="text-xs text-muted leading-relaxed">
-            Cancellations 60+ days before arrival receive a 50% refund. Inside
-            60 days the booking is non-refundable.
+            50% refundable up to 60 days before arrival. Non-refundable inside
+            60 days.
           </p>
         </div>
 

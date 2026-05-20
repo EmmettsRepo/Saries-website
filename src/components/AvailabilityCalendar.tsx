@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
+  AvailabilityUnavailableError,
   type CalendarDay,
   type DayStatus,
   getAvailability,
-  isMockMode,
 } from "@/lib/hospitable";
 
 /** Format a Date as yyyy-mm-dd in local time (timezone-safe). */
@@ -47,6 +47,7 @@ export default function AvailabilityCalendar({
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [availability, setAvailability] = useState<Record<string, CalendarDay>>({});
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const maxDate = new Date(today.getFullYear(), today.getMonth() + 18, 1);
   const canGoBack =
@@ -57,6 +58,7 @@ export default function AvailabilityCalendar({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     getAvailability(viewYear, viewMonth)
       .then((days) => {
         if (cancelled) return;
@@ -64,7 +66,15 @@ export default function AvailabilityCalendar({
         for (const d of days) map[d.date] = d;
         setAvailability(map);
       })
-      .catch((err) => console.error("Calendar load failed:", err))
+      .catch((err) => {
+        if (cancelled) return;
+        setAvailability({});
+        if (err instanceof AvailabilityUnavailableError) {
+          setLoadError("Live availability is temporarily unavailable. Please call or email to confirm dates.");
+        } else {
+          setLoadError("Could not load availability.");
+        }
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -238,9 +248,9 @@ export default function AvailabilityCalendar({
         ))}
       </div>
 
-      {isMockMode() && (
-        <p className="text-[10px] text-muted text-center py-2 italic border-t border-border">
-          Sample availability — call to confirm specific dates
+      {loadError && (
+        <p className="text-[10px] text-amber-700 text-center py-2 italic border-t border-border">
+          {loadError}
         </p>
       )}
     </div>
