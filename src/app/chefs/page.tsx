@@ -54,7 +54,7 @@ export default function ChefsPage() {
     <>
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/catering-spread.jpg" alt="Chefs" fill className="object-cover" priority />
+        <Image src="/images/catering-spread.webp" alt="Chefs" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/45" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>

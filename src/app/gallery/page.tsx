@@ -16,34 +16,34 @@ interface GalleryImage {
 }
 
 const images: GalleryImage[] = [
-  { src: "/images/exterior-wide.jpg", alt: "Wide view with cedars", category: "Exterior" },
+  { src: "/images/exterior-wide.webp", alt: "Wide view with cedars", category: "Exterior" },
   { src: "/images/exterior-courtyard-new.webp", alt: "Courtyard fire pit", category: "Exterior" },
-  { src: "/images/exterior-ferns.jpg", alt: "Through the ferns", category: "Exterior" },
+  { src: "/images/exterior-ferns.webp", alt: "Through the ferns", category: "Exterior" },
   { src: "/images/exterior-side.webp", alt: "Side angle with stone steps", category: "Exterior" },
   { src: "/images/exterior-creek-rocks.webp", alt: "Stream bed exterior", category: "Exterior" },
   { src: "/images/driveway-approach.webp", alt: "Driveway approach", category: "Exterior" },
   { src: "/images/outdoor-firepit-cabin.webp", alt: "Fire pit and cabin", category: "Exterior" },
   { src: "/images/interior-living-wide.webp", alt: "Open living wide angle", category: "Interior" },
-  { src: "/images/master-bedroom.jpg", alt: "Master suite", category: "Interior" },
+  { src: "/images/master-bedroom.webp", alt: "Master suite", category: "Interior" },
   { src: "/images/bedroom-master.webp", alt: "Queen suite", category: "Interior" },
   { src: "/images/bedroom-garden-doors.webp", alt: "Garden suite with French doors", category: "Interior" },
   { src: "/images/bedroom-loft-stove.webp", alt: "Loft bedroom with wood-burning stove", category: "Interior" },
   { src: "/images/bunk-rope-ladder.webp", alt: "Bunk room with rope ladder", category: "Interior" },
   { src: "/images/dining-room-leather.webp", alt: "Dining room with leather chairs and pendant lights", category: "Interior" },
-  { src: "/images/bunkbeds.jpg", alt: "Bunk room", category: "Interior" },
+  { src: "/images/bunkbeds.webp", alt: "Bunk room", category: "Interior" },
   { src: "/images/bedroom-bunk.webp", alt: "Bunk room loft", category: "Interior" },
   { src: "/images/bathroom-soaker.webp", alt: "Spa bathroom", category: "Interior" },
   { src: "/images/bathroom-shower.webp", alt: "Rain shower suite", category: "Interior" },
   { src: "/images/bathroom-farmhouse.webp", alt: "Farmhouse bathroom", category: "Interior" },
   { src: "/images/hallway-barndoors.webp", alt: "Gallery hallway", category: "Interior" },
   { src: "/images/kitchen-sink.webp", alt: "Kitchen farmhouse sink", category: "Interior" },
-  { src: "/images/forest-view.jpg", alt: "Forest view", category: "Grounds" },
-  { src: "/images/creek.jpg", alt: "Private stream", category: "Grounds" },
+  { src: "/images/forest-view.webp", alt: "Forest view", category: "Grounds" },
+  { src: "/images/creek.webp", alt: "Private stream", category: "Grounds" },
   { src: "/images/creek-stream.webp", alt: "Streamside garden with ferns", category: "Grounds" },
-  { src: "/images/outdoor-seating.jpg", alt: "Garden seating", category: "Grounds" },
-  { src: "/images/deer-woods.jpg", alt: "Deer among the trees", category: "Grounds" },
-  { src: "/images/tall-cedars.jpg", alt: "Ancient cedars", category: "Grounds" },
-  { src: "/images/garden-cabin.jpg", alt: "Garden cabin", category: "Grounds" },
+  { src: "/images/outdoor-seating.webp", alt: "Garden seating", category: "Grounds" },
+  { src: "/images/deer-woods.webp", alt: "Deer among the trees", category: "Grounds" },
+  { src: "/images/tall-cedars.webp", alt: "Ancient cedars", category: "Grounds" },
+  { src: "/images/garden-cabin.webp", alt: "Garden cabin", category: "Grounds" },
   { src: "/images/garden-paths.webp", alt: "Stone paths through the rhododendron garden", category: "Grounds" },
   { src: "/images/garden-hedges.webp", alt: "Layered hedges and rhododendron blooms", category: "Grounds" },
   { src: "/images/garden-cedar-ferns.webp", alt: "Twisted cedar branches over fern beds", category: "Grounds" },
@@ -60,10 +60,10 @@ const images: GalleryImage[] = [
   { src: "/images/cedar-trunks-lit.webp", alt: "Cedar trunks lit along the path", category: "Grounds" },
   { src: "/images/twin-tree-stream-cabins.webp", alt: "Twin tree above the stream with cabins in the distance", category: "Grounds" },
   { src: "/images/catering-salmon-platter.webp", alt: "Salmon platter with dill", category: "Dining" },
-  { src: "/images/catering-greens.jpg", alt: "Seasonal greens", category: "Dining" },
-  { src: "/images/catering-spread.jpg", alt: "Full spread", category: "Dining" },
-  { src: "/images/event-hall.jpg", alt: "Event pavilion", category: "Interior" },
-  { src: "/images/cabin-entrance.jpg", alt: "Studio cabin entrance", category: "Exterior" },
+  { src: "/images/catering-greens.webp", alt: "Seasonal greens", category: "Dining" },
+  { src: "/images/catering-spread.webp", alt: "Full spread", category: "Dining" },
+  { src: "/images/event-hall.webp", alt: "Event pavilion", category: "Interior" },
+  { src: "/images/cabin-entrance.webp", alt: "Studio cabin entrance", category: "Exterior" },
   { src: "/images/gym-tonal-wide.webp", alt: "Gym with Tonal strength training systems", category: "Interior" },
   { src: "/images/gym-tonal-angle.webp", alt: "Gym workout area open to the gardens", category: "Interior" },
   { src: "/images/gym-exterior.webp", alt: "Gym exterior with basketball hoop", category: "Exterior" },
@@ -150,7 +150,7 @@ export default function GalleryPage() {
     <>
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/deer-woods.jpg" alt="Gallery" fill className="object-cover" priority />
+        <Image src="/images/deer-woods.webp" alt="Gallery" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>

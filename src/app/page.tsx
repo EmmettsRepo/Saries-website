@@ -216,7 +216,7 @@ export default function HomePage() {
       {/* ===== FULL-WIDTH IMAGE BREAK ===== */}
       <section className="relative h-[60vh] min-h-[400px] ken-burns overflow-hidden">
         <Image
-          src="/images/tall-cedars.jpg"
+          src="/images/tall-cedars.webp"
           alt="Ancient cedars"
           fill
           className="object-cover"
@@ -282,8 +282,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[
               { img: "/images/bedroom-garden.webp", name: "Garden Suite", desc: "King bed with French doors opening to the garden patio and a private en-suite rain shower", position: "calc(100% + 50px) center" },
-              { img: "/images/master-bedroom.jpg", name: "Master Suite", desc: "Reclaimed king bed, vaulted beam ceiling, and warm bedside lighting" },
-              { img: "/images/bunkbeds.jpg", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, reclaimed wood throughout, and beautiful garden views" },
+              { img: "/images/master-bedroom.webp", name: "Master Suite", desc: "Reclaimed king bed, vaulted beam ceiling, and warm bedside lighting" },
+              { img: "/images/bunkbeds.webp", name: "Bunk Room", desc: "Custom timber bunk beds with ladder, reclaimed wood throughout, and beautiful garden views" },
               { img: "/images/bedroom-master.webp", name: "Queen Suite", desc: "Rope-suspended queen bed that swings, antique chandelier, and vaulted ceilings" },
               { img: "/images/bedroom-hearth.webp", name: "Guest Cottage", desc: "Private guest cottage with a queen bed and three twins, exposed beams, a wood-burning stove, full kitchen, and pebbled rain shower" },
               { img: "/images/bathroom-soaker.webp", name: "Private Bath", desc: "Private soaking bath with exposed beams, wet sauna, and garden views" },
@@ -322,7 +322,7 @@ export default function HomePage() {
       {/* ===== FULL-WIDTH IMAGE: DINING ===== */}
       <section className="relative h-[50vh] min-h-[350px] ken-burns overflow-hidden">
         <Image
-          src="/images/catering-spread.jpg"
+          src="/images/catering-spread.webp"
           alt="Farm to table dining"
           fill
           className="object-cover"
@@ -401,7 +401,7 @@ export default function HomePage() {
             {[
               { img: "/images/exterior-hero.webp", title: "Weddings", desc: "Ceremony lawns flanked by towering trees, fire copper bowl receptions under string lights, and 13 beds for the wedding party." },
               { img: "/images/interior-living-wide.webp", title: "Retreats", desc: "Inspire your team in a setting that sparks creativity. The Grand Hall, breakout spaces, and nature trails await." },
-              { img: "/images/outdoor-seating.jpg", title: "Celebrations", desc: "Boutique weddings, vow renewals, anniversaries, birthdays, graduation parties, 4th of July parties, baby showers, girls spa getaways, baptisms, private dinners, s'mores by the fire, etc. — every occasion finds its setting." },
+              { img: "/images/outdoor-seating.webp", title: "Celebrations", desc: "Boutique weddings, vow renewals, anniversaries, birthdays, graduation parties, 4th of July parties, baby showers, girls spa getaways, baptisms, private dinners, s'mores by the fire, etc. — every occasion finds its setting." },
             ].map((card, i) => (
               <AnimatedSection key={card.title} delay={i * 0.12}>
                 <div className="group cursor-pointer depth-float">
@@ -471,19 +471,19 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 auto-rows-[200px] md:auto-rows-[250px]">
             <AnimatedSection delay={0} className="md:col-span-2 md:row-span-2">
               <Link href="/gallery" className="relative block h-full overflow-hidden group zoom-container">
-                <Image src="/images/exterior-wide.jpg" alt="Estate wide view" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src="/images/exterior-wide.webp" alt="Estate wide view" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-500" />
               </Link>
             </AnimatedSection>
             <AnimatedSection delay={0.08}>
               <Link href="/gallery" className="relative block h-full overflow-hidden group zoom-container">
-                <Image src="/images/master-bedroom.jpg" alt="Master suite" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src="/images/master-bedroom.webp" alt="Master suite" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-500" />
               </Link>
             </AnimatedSection>
             <AnimatedSection delay={0.12}>
               <Link href="/gallery" className="relative block h-full overflow-hidden group zoom-container">
-                <Image src="/images/creek.jpg" alt="Private stream" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src="/images/creek.webp" alt="Private stream" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-500" />
               </Link>
             </AnimatedSection>
@@ -495,7 +495,7 @@ export default function HomePage() {
             </AnimatedSection>
             <AnimatedSection delay={0.2} className="md:col-span-2">
               <Link href="/gallery" className="relative block h-full overflow-hidden group zoom-container">
-                <Image src="/images/deer-garden.jpg" alt="Deer in the garden" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src="/images/deer-garden.webp" alt="Deer in the garden" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-500" />
               </Link>
             </AnimatedSection>
@@ -515,7 +515,7 @@ export default function HomePage() {
       {/* ===== FINAL CTA ===== */}
       <section className="relative h-[70vh] min-h-[450px] flex items-center justify-center ken-burns overflow-hidden">
         <Image
-          src="/images/forest-view.jpg"
+          src="/images/forest-view.webp"
           alt="ANEW"
           fill
           className="object-cover"

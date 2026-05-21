@@ -12,15 +12,15 @@ import { useState } from "react";
 const spaces = [
   { name: "Grand Hall", tag: "Indoor", capacity: "75 guests", img: "/images/interior-living-wide.webp", desc: "Refined craftsmanship at its finest — soaring timber beams, a hand-forged iron chandelier, and floor-to-ceiling windows framing the forest canopy." },
   { name: "Courtyard & Fire Pit", tag: "Outdoor", capacity: "60 guests", img: "/images/outdoor-firepit-cabin.webp", desc: "An elegant outdoor lounge with a stone fire pit, plush seating, and twinkling string lights — exceptional for evening gatherings." },
-  { name: "Ceremony Lawn", tag: "Outdoor", capacity: "75 guests", img: "/images/exterior-wide.jpg", desc: "A manicured lawn flanked by towering trees, creating a natural cathedral. An elevated setting for life's most cherished moments." },
-  { name: "Master Suite", tag: "Indoor", capacity: "Private", img: "/images/master-bedroom.jpg", desc: "Reclaimed timber king bed with backlit headboard, ceiling fan, and a warm tile accent wall — the most private room in the estate." },
+  { name: "Ceremony Lawn", tag: "Outdoor", capacity: "75 guests", img: "/images/exterior-wide.webp", desc: "A manicured lawn flanked by towering trees, creating a natural cathedral. An elevated setting for life's most cherished moments." },
+  { name: "Master Suite", tag: "Indoor", capacity: "Private", img: "/images/master-bedroom.webp", desc: "Reclaimed timber king bed with backlit headboard, ceiling fan, and a warm tile accent wall — the most private room in the estate." },
   { name: "Queen Suite", tag: "Indoor", capacity: "Private", img: "/images/bedroom-master.webp", desc: "A rope-suspended queen bed that swings beneath an ornate chandelier, with vaulted ceilings and exposed beams." },
-  { name: "Bunk Room", tag: "Indoor", capacity: "4 guests", img: "/images/bunkbeds.jpg", desc: "Custom-built reclaimed timber bunk beds with ladder access, plush rug, and cozy loft sleeping — perfect for groups and kids." },
+  { name: "Bunk Room", tag: "Indoor", capacity: "4 guests", img: "/images/bunkbeds.webp", desc: "Custom-built reclaimed timber bunk beds with ladder access, plush rug, and cozy loft sleeping — perfect for groups and kids." },
   { name: "Chef's Kitchen", tag: "Indoor", capacity: "Catering ready", img: "/images/kitchen-sink.webp", desc: "Refined craftsmanship meets function — farmhouse sink, copper fixtures, and direct courtyard access for private chefs." },
-  { name: "Spa & Wellness Center", tag: "Indoor", capacity: "By appointment", img: "/images/spa-sauna.jpg", desc: "An exceptional on-site retreat featuring sauna, massage therapy, IV therapy treatments, and a private soaking tub — elevated wellness in a natural oasis." },
+  { name: "Spa & Wellness Center", tag: "Indoor", capacity: "By appointment", img: "/images/spa-sauna.webp", desc: "An exceptional on-site retreat featuring sauna, massage therapy, IV therapy treatments, and a private soaking tub — elevated wellness in a natural oasis." },
   { name: "Massage & Treatment Room", tag: "Indoor", capacity: "1-2 guests", img: "/images/bathroom-shower.webp", desc: "An exclusive private treatment space for deep tissue, Swedish, and hot stone massages with licensed therapists." },
-  { name: "Event Pavilion", tag: "Indoor", capacity: "75 guests", img: "/images/event-hall.jpg", desc: "A versatile open-plan hall with exposed timber beams, polished concrete floors, and French doors opening to the forest. Expandable tables available for dining, workshops, or yoga — designed for any activity you envision." },
-  { name: "Studio Cabin", tag: "Indoor/Outdoor", capacity: "Flexible", img: "/images/cabin-entrance.jpg", desc: "A charming standalone cabin with tree-lined approach — ideal for breakout sessions, bridal prep, or intimate gatherings." },
+  { name: "Event Pavilion", tag: "Indoor", capacity: "75 guests", img: "/images/event-hall.webp", desc: "A versatile open-plan hall with exposed timber beams, polished concrete floors, and French doors opening to the forest. Expandable tables available for dining, workshops, or yoga — designed for any activity you envision." },
+  { name: "Studio Cabin", tag: "Indoor/Outdoor", capacity: "Flexible", img: "/images/cabin-entrance.webp", desc: "A charming standalone cabin with tree-lined approach — ideal for breakout sessions, bridal prep, or intimate gatherings." },
 ];
 
 const faqs = [
@@ -134,7 +134,7 @@ export default function VenuePage() {
           </AnimatedSection>
           <AnimatedSection direction="right" className="order-1 lg:order-2">
             <div className="relative aspect-[4/5] lg:aspect-[3/4] max-h-[700px]">
-              <Image src="/images/spa-sauna.jpg" alt="ANEW Spa & Sauna" fill className="object-cover" />
+              <Image src="/images/spa-sauna.webp" alt="ANEW Spa & Sauna" fill className="object-cover" />
             </div>
           </AnimatedSection>
         </div>

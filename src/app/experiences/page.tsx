@@ -14,7 +14,7 @@ const experiences = [
     desc: "A curated day of guided meditation with crystal sound bowls, forest bathing, yoga among the trees, and restorative bodywork. Designed for groups or individuals seeking stillness and renewal.",
     features: ["Guided forest meditation with crystal sound bowls", "Outdoor yoga session", "Aromatherapy & sound healing", "Farm-to-table wellness lunch"],
     price: "From $250/person",
-    image: "/images/creek.jpg",
+    image: "/images/creek.webp",
   },
   {
     title: "Private Chef Experience",
@@ -22,7 +22,7 @@ const experiences = [
     desc: "Book one of our resident chefs for an intimate, multi-course dinner crafted from locally sourced ingredients. Dine fireside, in the Grand Hall, or under the stars.",
     features: ["Curated chef selection", "Seasonal tasting menu", "Wine pairing available", "Indoor or outdoor seating"],
     price: "From $125/person",
-    image: "/images/catering-spread.jpg",
+    image: "/images/catering-spread.webp",
   },
   {
     title: "Nature & Trail Excursion",
@@ -30,7 +30,7 @@ const experiences = [
     desc: "A guided half-day excursion through the best trails and viewpoints near ANEW. From Rattlesnake Ledge to Snoqualmie Falls, experience the Pacific Northwest with a local guide.",
     features: ["Professional local guide", "Trail snacks & hydration", "Photography stops", "Flexible difficulty levels"],
     price: "From $95/person",
-    image: "/images/forest-approach.jpg",
+    image: "/images/forest-approach.webp",
   },
   {
     title: "Spa & Renewal Day",
@@ -38,7 +38,7 @@ const experiences = [
     desc: "A full day of pampering featuring massage, facials, soaking, and relaxation in our serene woodland setting. Perfect as a bridal party treat or personal escape.",
     features: ["90-min massage treatment", "Custom facial", "Access to soaking tub", "Herbal tea & light bites"],
     price: "From $350/person",
-    image: "/images/spa-sauna.jpg",
+    image: "/images/spa-sauna.webp",
   },
   {
     title: "Wine Country Tour",
@@ -78,7 +78,7 @@ const experiences = [
     desc: "From quiet afternoons to lively group gatherings — chess, bocce ball, basketball, soccer, badminton, ping pong, and a curated collection of board games are all on hand for guests to enjoy.",
     features: ["Chess & board games", "Bocce ball", "Basketball & soccer", "Badminton & ping pong"],
     price: "Complimentary for guests",
-    image: "/images/exterior-wide.jpg",
+    image: "/images/exterior-wide.webp",
   },
   {
     title: "Boating, Flowers & Art",
@@ -104,7 +104,7 @@ export default function ExperiencesPage() {
     <>
       {/* Hero */}
       <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center">
-        <Image src="/images/deer-garden.jpg" alt="Experiences" fill className="object-cover" priority />
+        <Image src="/images/deer-garden.webp" alt="Experiences" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>
@@ -186,7 +186,7 @@ export default function ExperiencesPage() {
 
       {/* CTA */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/tall-cedars.jpg" alt="Forest" fill className="object-cover" />
+        <Image src="/images/tall-cedars.webp" alt="Forest" fill className="object-cover" />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>

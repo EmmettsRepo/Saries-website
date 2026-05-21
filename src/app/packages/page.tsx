@@ -96,7 +96,7 @@ export default function PackagesPage() {
     <>
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/courtyard-lounge.jpg" alt="Packages" fill className="object-cover" priority />
+        <Image src="/images/courtyard-lounge.webp" alt="Packages" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>
@@ -239,7 +239,7 @@ export default function PackagesPage() {
 
       {/* CTA */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/forest-approach.jpg" alt="Forest" fill className="object-cover" />
+        <Image src="/images/forest-approach.webp" alt="Forest" fill className="object-cover" />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>

@@ -187,7 +187,7 @@ function BookingPageInner() {
   return (
     <>
       <section className="relative h-[45vh] min-h-[300px] flex items-center justify-center">
-        <Image src="/images/forest-approach.jpg" alt="Booking" fill className="object-cover" priority />
+        <Image src="/images/forest-approach.webp" alt="Booking" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>

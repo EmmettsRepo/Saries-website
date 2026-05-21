@@ -65,7 +65,7 @@ export default function LocalPage() {
     <>
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/forest-view.jpg" alt="Local area" fill className="object-cover" priority />
+        <Image src="/images/forest-view.webp" alt="Local area" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>
@@ -128,7 +128,7 @@ export default function LocalPage() {
 
       {/* CTA */}
       <section className="relative h-[50vh] min-h-[350px] flex items-center justify-center">
-        <Image src="/images/creek.jpg" alt="Nature" fill className="object-cover" />
+        <Image src="/images/creek.webp" alt="Nature" fill className="object-cover" />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
           <AnimatedSection>
