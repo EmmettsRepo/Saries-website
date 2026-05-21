@@ -1,4 +1,4 @@
-export type DurationBlock = 4 | 8 | 12 | 24;
+export type DurationBlock = 24;
 
 export interface BlockOption {
   hours: DurationBlock;
@@ -8,11 +8,10 @@ export interface BlockOption {
 }
 
 export const BLOCK_OPTIONS: BlockOption[] = [
-  { hours: 4, price: 1500, label: "4 Hours", desc: "Half-day event" },
-  { hours: 8, price: 2500, label: "8 Hours", desc: "Full-day event" },
-  { hours: 12, price: 3500, label: "12 Hours", desc: "Extended day" },
-  { hours: 24, price: 5500, label: "24 Hours", desc: "Overnight stay" },
+  { hours: 24, price: 5500, label: "Full Day", desc: "The estate is yours for the day" },
 ];
+
+export const FLAT_DAY_RATE = 5500;
 
 export const EVENT_TYPES = [
   "Wedding",
