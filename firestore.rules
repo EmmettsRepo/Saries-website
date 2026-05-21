@@ -31,25 +31,11 @@ service cloud.firestore {
     // Client writes are only allowed when paired with a Stripe payment intent
     // (the webhook is the authoritative payment-status source via admin SDK).
     match /booking_inquiries/{docId} {
-      // Payment-sensitive fields can ONLY be written by the Stripe webhook
-      // (which uses Admin SDK and bypasses these rules). Clients writing them
-      // would let anyone fabricate a "paid" booking with a forged PI id.
-      allow create: if request.resource.data.keys().hasAll(['email', 'type', 'status', 'paymentIntentId'])
-        && request.resource.data.email is string
-        && request.resource.data.email.size() > 0
-        && request.resource.data.email.size() < 255
-        && request.resource.data.type == 'booking'
-        && request.resource.data.status == 'new'
-        && request.resource.data.paymentIntentId is string
-        && request.resource.data.paymentIntentId.matches('^pi_[A-Za-z0-9_]+$')
-        && !('paymentStatus' in request.resource.data)
-        && !('paymentConfirmedAt' in request.resource.data)
-        && !('stripeAmount' in request.resource.data)
-        && !('amountPaid' in request.resource.data)
-        && !('hospitableReservationId' in request.resource.data)
-        && !('hospitableSyncedAt' in request.resource.data)
-        && !('recoveredFromWebhook' in request.resource.data)
-        && request.resource.data.keys().size() < 50;
+      // Direct client creation is DENIED. The Stripe webhook is the sole
+      // authority for creating booking docs (Admin SDK bypasses these rules).
+      // This eliminates forged paymentIntentId / replay attack vectors —
+      // a doc only exists if Stripe signed a real payment_intent.succeeded.
+      allow create: if false;
 
       allow read: if isOwner(resource) || isAdmin();
       // Owners can only update status/notes; payment fields are admin/webhook only.
@@ -85,6 +71,11 @@ service cloud.firestore {
     // Authenticated users can create. Only the booking user + assigned chef + admin can read.
     match /chef_bookings/{docId} {
       allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'chefEmail', 'status'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.chefEmail is string
+        && request.resource.data.chefEmail.size() < 255
         && request.resource.data.keys().size() < 25;
 
       allow read: if request.auth != null && (

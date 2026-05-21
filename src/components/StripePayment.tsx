@@ -10,9 +10,13 @@ import {
 } from "@stripe/react-stripe-js";
 import { Lock, AlertCircle } from "lucide-react";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!stripePublishableKey) {
+  throw new Error(
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set — booking checkout cannot initialize."
+  );
+}
+const stripePromise = loadStripe(stripePublishableKey);
 
 const FUNCTIONS_URL =
   process.env.NEXT_PUBLIC_FUNCTIONS_URL ||

@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, Minus, Plus, CheckCircle2 } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
-import { submitBookingInquiry } from "@/lib/submissions";
 import { useBotGuard } from "@/components/BotGuard";
 import { useAuth } from "@/components/AuthProvider";
 import AuthModal from "@/components/AuthModal";
@@ -111,32 +110,13 @@ function BookingPageInner() {
   const selectedBlock = BLOCK_OPTIONS.find((b) => b.hours === form.blockHours) || null;
   const chargeAmount = selectedBlock?.price || 0;
 
-  const handlePaymentSuccess = async (paymentIntentId: string) => {
-    setSubmitting(true);
-    try {
-      await submitBookingInquiry({
-        type: "booking",
-        userId: user?.uid || "guest",
-        email: user?.email || form.guestEmail,
-        displayName: user?.displayName || form.guestName,
-        phone: form.guestPhone || undefined,
-        selectedDate: form.selectedDate ? toLocalDateString(form.selectedDate) : null,
-        durationHours: form.blockHours,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        eventType: form.eventType,
-        guestCount: form.guestCount,
-        notes: form.notes,
-        estimatedTotal: chargeAmount,
-        paymentIntentId,
-      });
-      setSubmitted(true);
-    } catch (err) {
-      console.error("Submission error:", err);
-      setPaymentError("Payment succeeded but we couldn't save your booking. Please contact us with your payment confirmation.");
-    } finally {
-      setSubmitting(false);
-    }
+  const handlePaymentSuccess = async (_paymentIntentId: string) => {
+    // No client-side Firestore write. The Stripe webhook is the single
+    // source of truth — it verifies the payment signature, then creates
+    // the booking_inquiries doc from Stripe metadata and pushes to
+    // Hospitable. This eliminates the forged-PI-id and replay attack
+    // surface that direct client writes would create.
+    setSubmitted(true);
   };
 
   const inputClass = (field: string) =>

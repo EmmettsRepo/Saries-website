@@ -56,12 +56,21 @@ const RATE_LIMITS: Record<string, number> = {
   submitTour: 5,
   refundBooking: 30,
   getAvailability: 60,
+  hospitableWebhook: 120,
+  stripeWebhook: 240,
 };
 
+/** Returns the real client IP from X-Forwarded-For.
+ *  Behind GFE/Firebase load balancers the actual client IP is the LAST
+ *  trusted entry, not the first. Using the first lets attackers spoof IPs
+ *  by injecting their own values into the header. */
 function clientIp(req: { headers: Record<string, string | string[] | undefined>; ip?: string }): string {
   const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
-  if (Array.isArray(fwd) && fwd.length > 0) return String(fwd[0]).split(",")[0].trim();
+  const raw = Array.isArray(fwd) ? fwd.join(",") : (typeof fwd === "string" ? fwd : "");
+  if (raw) {
+    const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
   return req.ip || "unknown";
 }
 
@@ -87,8 +96,10 @@ async function enforceRateLimit(endpoint: string, ip: string): Promise<boolean> 
     });
     return allowed;
   } catch (err) {
-    console.error("Rate-limit check failed (fail-open):", err);
-    return true;
+    // Fail closed — on a money-touching endpoint, denying access is safer
+    // than letting attackers flood through during Firestore disruption.
+    console.error("Rate-limit check failed (fail-closed):", err);
+    return false;
   }
 }
 
@@ -182,6 +193,14 @@ export const stripeWebhook = onRequest(
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method not allowed");
+      return;
+    }
+
+    // Rate limit by source IP before doing HMAC verification work.
+    // Stripe's legitimate webhook traffic is far below this ceiling.
+    const sourceIp = clientIp(req);
+    if (!(await enforceRateLimit("stripeWebhook", sourceIp))) {
+      res.status(429).send("Too many requests");
       return;
     }
 
@@ -445,10 +464,10 @@ export const getAvailability = onRequest((req, res) => {
       };
       const days = (json.data?.days || []).map((d) => {
         const available = d.status?.available;
-        let status: "available" | "limited" | "booked";
-        if (available === false) status = "booked";
-        else if (available === true) status = "available";
-        else status = "limited";
+        // available === undefined just means Hospitable has no explicit rule
+        // for the date — treat as available (not "limited", which the UI
+        // styles as yellow and discourages selection).
+        const status: "available" | "booked" = available === false ? "booked" : "available";
         // Hospitable returns price.amount in cents (300000 = $3000). Convert to whole dollars.
         const priceDollars = typeof d.price?.amount === "number" ? Math.round(d.price.amount / 100) : undefined;
         return { date: d.date, status, price: priceDollars, minNights: d.min_stay };
@@ -569,6 +588,14 @@ export const hospitableWebhook = onRequest(
       return;
     }
 
+    // Rate limit before doing any HMAC work so flood traffic with bogus
+    // signatures can't exhaust the CPU on signature verification.
+    const rateLimitIp = clientIp(req);
+    if (!(await enforceRateLimit("hospitableWebhook", rateLimitIp))) {
+      res.status(429).send("Too many requests");
+      return;
+    }
+
     // Verify the request came from Hospitable.
     //
     // Per Hospitable's published spec (see hospitable-python SDK
@@ -642,8 +669,10 @@ export const hospitableWebhook = onRequest(
       const headerToken = req.headers["x-webhook-token"];
       const authHeader = req.headers["authorization"];
       let provided = "";
-      if (typeof req.query.token === "string") provided = req.query.token;
-      else if (typeof headerToken === "string") provided = headerToken;
+      // Token must come from a HEADER. Never accept it via query string —
+      // URL query params end up in proxy/CDN/Cloud Logging history,
+      // permanently exposing the secret.
+      if (typeof headerToken === "string") provided = headerToken;
       else if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) provided = authHeader.slice(7);
 
       const provBuf = Buffer.from(provided);
