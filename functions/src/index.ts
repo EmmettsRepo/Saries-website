@@ -127,13 +127,14 @@ export const createPaymentIntent = onRequest((req, res) => {
       const amount = body.amount;
       const currency = typeof body.currency === "string" ? body.currency : "usd";
 
-      if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 100) {
-        res.status(400).json({ error: "Invalid amount (minimum $1.00)" });
-        return;
-      }
-      // Cap at $25,000 to prevent abuse
-      if (amount > 2500000) {
-        res.status(400).json({ error: "Amount exceeds maximum" });
+      // Server-side allowlist of valid charge amounts (cents).
+      // Anything else is treated as price tampering and rejected.
+      const VALID_AMOUNTS_CENTS = new Set<number>([
+        550000, // $5,500 — flat day rate at the estate
+      ]);
+      if (typeof amount !== "number" || !Number.isFinite(amount) || !VALID_AMOUNTS_CENTS.has(Math.round(amount))) {
+        console.warn(`Rejected payment intent — invalid amount ${amount} from ip=${ip}`);
+        res.status(400).json({ error: "Invalid amount" });
         return;
       }
       if (!/^[a-z]{3}$/.test(currency)) {
@@ -471,6 +472,15 @@ async function pushReservationToHospitable(
   const propertyId = hospitablePropertyId.value();
   if (!token || !propertyId) {
     console.log("Hospitable not configured — skipping reservation push");
+    return;
+  }
+
+  // Idempotency: Stripe retries webhooks on any non-2xx response.
+  // Re-read the doc to avoid double-pushing if another invocation already synced.
+  const docRef = db.collection("booking_inquiries").doc(bookingId);
+  const fresh = await docRef.get();
+  if (fresh.exists && fresh.data()?.hospitableReservationId) {
+    console.log(`Booking ${bookingId} already synced to Hospitable — skipping duplicate push`);
     return;
   }
 

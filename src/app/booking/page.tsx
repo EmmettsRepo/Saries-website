@@ -13,13 +13,22 @@ import { useAuth } from "@/components/AuthProvider";
 import AuthModal from "@/components/AuthModal";
 import StripePayment from "@/components/StripePayment";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
-import { BLOCK_OPTIONS, EVENT_TYPES, addHours, durationBetween, formatTime, type DurationBlock } from "@/lib/booking";
+import { BLOCK_OPTIONS, EVENT_TYPES, formatTime, type DurationBlock } from "@/lib/booking";
 
 const STEPS = ["Date & Time", "Your Details", "Payment"];
 
+/** Format a Date as YYYY-MM-DD in the user's local timezone.
+ *  Using toISOString() shifts dates across the date line for evening Pacific users. */
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 interface FormData {
   selectedDate: Date | null;
-  blockHours: DurationBlock | null;
+  blockHours: DurationBlock;
   startTime: string;
   endTime: string;
   eventType: string;
@@ -76,24 +85,10 @@ function BookingPageInner() {
     });
   };
 
-  const pickBlock = (hours: DurationBlock) => {
-    updateForm({ blockHours: hours, endTime: addHours(form.startTime, hours) });
-  };
-
-  const updateStart = (startTime: string) => {
-    updateForm({
-      startTime,
-      endTime: form.blockHours ? addHours(startTime, form.blockHours) : form.endTime,
-    });
-  };
-
   const validateStep = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 0) {
       if (!form.selectedDate) errs.selectedDate = "Select an arrival date";
-      if (!form.blockHours) errs.blockHours = "Choose a duration";
-      if (!form.startTime) errs.startTime = "Required";
-      if (!form.endTime) errs.endTime = "Required";
     }
     if (step === 1) {
       if (!form.eventType) errs.eventType = "Required";
@@ -115,7 +110,6 @@ function BookingPageInner() {
 
   const selectedBlock = BLOCK_OPTIONS.find((b) => b.hours === form.blockHours) || null;
   const chargeAmount = selectedBlock?.price || 0;
-  const actualDuration = durationBetween(form.startTime, form.endTime);
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
     setSubmitting(true);
@@ -126,18 +120,15 @@ function BookingPageInner() {
         email: user?.email || form.guestEmail,
         displayName: user?.displayName || form.guestName,
         phone: form.guestPhone || undefined,
-        selectedDate: form.selectedDate ? form.selectedDate.toISOString() : null,
+        selectedDate: form.selectedDate ? toLocalDateString(form.selectedDate) : null,
         durationHours: form.blockHours,
         startTime: form.startTime,
         endTime: form.endTime,
-        actualDurationHours: actualDuration,
         eventType: form.eventType,
         guestCount: form.guestCount,
         notes: form.notes,
-        amountPaid: chargeAmount,
         estimatedTotal: chargeAmount,
         paymentIntentId,
-        paymentStatus: "paid",
       });
       setSubmitted(true);
     } catch (err) {
@@ -171,7 +162,7 @@ function BookingPageInner() {
             </p>
           )}
           <p className="text-muted text-sm mb-8">
-            {formatTime(form.startTime)} – {formatTime(form.endTime)} ({form.blockHours} hr block)
+            Check-in {formatTime(form.startTime)} · Check-out {formatTime(form.endTime)} the following day
           </p>
           <p className="text-muted text-sm mb-8">
             Confirmation email on the way. We&apos;ll be in touch shortly to lock in the details.
@@ -364,7 +355,7 @@ function BookingPageInner() {
                             chargeAmount: String(chargeAmount),
                             eventType: form.eventType,
                             guestCount: String(form.guestCount),
-                            arrivalDate: form.selectedDate ? form.selectedDate.toISOString().split("T")[0] : "",
+                            arrivalDate: form.selectedDate ? toLocalDateString(form.selectedDate) : "",
                             durationHours: String(form.blockHours || ""),
                             startTime: form.startTime,
                             endTime: form.endTime,
