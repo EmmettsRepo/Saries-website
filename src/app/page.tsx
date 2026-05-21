@@ -240,10 +240,10 @@ export default function HomePage() {
               Celebrations<br />Under the Canopy
             </h3>
             <p className="text-muted leading-relaxed mb-6 text-[15px]">
-              From private stays to grand weddings on the ceremony lawn, white sandy beach, in the forest, to intimate dinners by the copper fire bowl, ANEW adapts to your vision. String lights drape the courtyard, the stream provides a natural soundtrack, and deer wander the grounds at dusk.
+              From private stays to boutique weddings on the ceremony lawn, white sandy beach, in the forest, to intimate dinners by the copper fire bowl, ANEW adapts to your vision. String lights drape the courtyard, the stream provides a natural soundtrack, and deer wander the grounds at dusk.
             </p>
             <p className="text-muted leading-relaxed mb-8 text-[15px]">
-              Weddings, elopements, corporate retreats, birthday celebrations, wellness retreats, and private dinners — every gathering finds its perfect setting here.
+              Weddings, elopements, vow renewals, corporate retreats, birthday celebrations, graduation parties, 4th of July parties, anniversaries, baby showers, baptisms, girls spa getaways, wellness retreats, and private dinners — every gathering finds its perfect setting here.
             </p>
             <Link
               href="/booking"
@@ -401,7 +401,7 @@ export default function HomePage() {
             {[
               { img: "/images/exterior-hero.webp", title: "Weddings", desc: "Ceremony lawns flanked by towering trees, fire copper bowl receptions under string lights, and 13 beds for the wedding party." },
               { img: "/images/interior-living-wide.webp", title: "Retreats", desc: "Inspire your team in a setting that sparks creativity. The Grand Hall, breakout spaces, and nature trails await." },
-              { img: "/images/outdoor-seating.jpg", title: "Celebrations", desc: "The ultimate grounding experience for outdoor enthusiasts — natural yoga, open-air dining, birthday celebrations, and a cozy spot for s'mores by the fire." },
+              { img: "/images/outdoor-seating.jpg", title: "Celebrations", desc: "Boutique weddings, vow renewals, anniversaries, birthdays, graduation parties, 4th of July parties, baby showers, girls spa getaways, baptisms, private dinners, s'mores by the fire, etc. — every occasion finds its setting." },
             ].map((card, i) => (
               <AnimatedSection key={card.title} delay={i * 0.12}>
                 <div className="group cursor-pointer depth-float">
@@ -561,7 +561,6 @@ export default function HomePage() {
             </p>
             <div className="space-y-3 text-muted text-sm">
               <p>Kenmore, WA</p>
-              <p><a href="tel:+12067558541" className="hover:text-accent transition-colors">(206) 755-8541</a></p>
               <p><a href="mailto:hello@anewretreatandspa.com" className="hover:text-accent transition-colors">hello@anewretreatandspa.com</a></p>
             </div>
           </AnimatedSection>

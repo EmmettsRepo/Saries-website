@@ -88,6 +88,14 @@ const experiences = [
     price: "Inquire for pricing",
     image: "/images/garden-flowers.webp",
   },
+  {
+    title: "AXOPAR Excursions aboard M/V Blusea",
+    tagline: "Set Sail",
+    desc: "Step aboard ANEW's AXOPAR M/V \"Blusea\" for a private excursion on the Salish Sea. Choose a half-day cruise, a full one-day adventure, a two-day voyage, or an overnight on the water — every trip catered with chef-prepared breakfast, lunch, or dinner served onboard.",
+    features: ["Half-day excursions", "One-day excursions", "Two-day excursions", "Overnight excursions", "Catered breakfast, lunch & dinner", "Aboard ANEW's AXOPAR M/V Blusea"],
+    price: "Inquire for pricing",
+    image: "/images/twin-tree-stream-cabins.webp",
+  },
 ];
 
 

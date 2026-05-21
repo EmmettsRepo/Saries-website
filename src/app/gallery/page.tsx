@@ -58,6 +58,7 @@ const images: GalleryImage[] = [
   { src: "/images/cedar-grove-night.webp", alt: "Illuminated cedar grove at night", category: "Grounds" },
   { src: "/images/sauna-cabin-night.webp", alt: "Sauna cabin glowing through the cedars", category: "Grounds" },
   { src: "/images/cedar-trunks-lit.webp", alt: "Cedar trunks lit along the path", category: "Grounds" },
+  { src: "/images/twin-tree-stream-cabins.webp", alt: "Twin tree above the stream with cabins in the distance", category: "Grounds" },
   { src: "/images/catering-salmon-platter.webp", alt: "Salmon platter with dill", category: "Dining" },
   { src: "/images/catering-greens.jpg", alt: "Seasonal greens", category: "Dining" },
   { src: "/images/catering-spread.jpg", alt: "Full spread", category: "Dining" },

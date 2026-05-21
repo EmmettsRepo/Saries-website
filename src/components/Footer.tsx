@@ -116,7 +116,6 @@ export default function Footer() {
             <p className="text-[11px] tracking-[0.3em] uppercase text-accent mb-6">Contact</p>
             <div className="flex flex-col gap-3 text-sm text-white/50">
               <p>Kenmore, WA</p>
-              <a href="tel:+12067558541" className="hover:text-accent transition-colors">(206) 755-8541</a>
               <a href="mailto:hello@anewretreatandspa.com" className="hover:text-accent transition-colors">hello@anewretreatandspa.com</a>
             </div>
           </div>
