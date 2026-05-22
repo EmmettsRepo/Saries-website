@@ -542,7 +542,7 @@ async function pushReservationToHospitable(
   ].filter(Boolean).join(" | ");
 
   const payload = {
-    properties: [propertyId],
+    property_id: propertyId,
     check_in: checkIn.toISOString().split("T")[0],
     check_out: checkOut.toISOString().split("T")[0],
     guest: {
@@ -551,12 +551,18 @@ async function pushReservationToHospitable(
       email: guestEmail,
       phone: guestPhone,
     },
-    number_of_guests: guestCount,
+    guests: { adults: guestCount, children: 0, infants: 0 },
+    language: "en",
+    financials: {
+      currency: "USD",
+      accommodation: Math.round(amountPaid * 100),
+      fees: [] as unknown[],
+    },
     source: "direct",
     notes,
     confirmation_status: "confirmed",
   };
-  console.log(`Pushing reservation to Hospitable: booking=${bookingId} property=${propertyId} check_in=${payload.check_in} check_out=${payload.check_out} guests=${payload.number_of_guests}`);
+  console.log(`Pushing reservation to Hospitable: booking=${bookingId} property=${propertyId} check_in=${payload.check_in} check_out=${payload.check_out} guests=${guestCount}`);
 
   const r = await fetch("https://public.api.hospitable.com/v2/reservations", {
     method: "POST",
@@ -1018,7 +1024,7 @@ async function pushTourToHospitable(
   ].filter(Boolean).join(" | ");
 
   const payload = {
-    properties: [propertyId],
+    property_id: propertyId,
     check_in: checkIn.toISOString().split("T")[0],
     check_out: checkOut.toISOString().split("T")[0],
     guest: {
@@ -1027,7 +1033,9 @@ async function pushTourToHospitable(
       email: tour.email,
       phone: tour.phone,
     },
-    number_of_guests: 1,
+    guests: { adults: 1, children: 0, infants: 0 },
+    language: "en",
+    financials: { currency: "USD", accommodation: 0, fees: [] as unknown[] },
     source: "direct",
     notes,
     confirmation_status: "inquiry",
@@ -1189,7 +1197,7 @@ async function pushBookingInquiryToHospitable(
   ].filter(Boolean).join(" | ");
 
   const payload = {
-    properties: [propertyId],
+    property_id: propertyId,
     check_in: checkIn.toISOString().split("T")[0],
     check_out: checkOut.toISOString().split("T")[0],
     guest: {
@@ -1198,7 +1206,9 @@ async function pushBookingInquiryToHospitable(
       email: data.email,
       phone: data.phone,
     },
-    number_of_guests: data.guestCount || 1,
+    guests: { adults: data.guestCount || 1, children: 0, infants: 0 },
+    language: "en",
+    financials: { currency: "USD", accommodation: 0, fees: [] as unknown[] },
     source: "direct",
     notes,
     confirmation_status: "inquiry",
