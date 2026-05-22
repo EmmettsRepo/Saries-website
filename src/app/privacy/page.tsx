@@ -65,7 +65,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">7. Contact</h2>
-              <p>For privacy-related inquiries, contact us at <a href="mailto:hello@anewretreatandspa.com" className="text-dark underline hover:text-accent">hello@anewretreatandspa.com</a>.</p>
+              <p>For privacy-related inquiries, contact us at <a href="mailto:Admin@anewretreatandspa.com" className="text-dark underline hover:text-accent">Admin@anewretreatandspa.com</a>.</p>
             </section>
           </div>
         </AnimatedSection>

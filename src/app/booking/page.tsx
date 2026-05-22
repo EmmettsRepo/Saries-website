@@ -204,6 +204,9 @@ function BookingPageInner() {
                   {/* STEP 0: Date & Time */}
                   {step === 0 && (
                     <div className="space-y-8">
+                      <div className="border border-border bg-cream/30 p-4 text-sm text-muted">
+                        Prefer to ask first? <Link href="/inquire" className="text-dark border-b border-dark hover:text-accent hover:border-accent transition-colors">Send an inquiry</Link> and our host will reach out before any payment.
+                      </div>
                       <div>
                         <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Select Your Date *</label>
                         <AvailabilityCalendar

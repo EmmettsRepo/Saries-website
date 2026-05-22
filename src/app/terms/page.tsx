@@ -35,7 +35,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">3. Disputes</h2>
-              <p>If you believe a charge is incorrect, contact us at <a href="mailto:hello@anewretreatandspa.com" className="text-dark underline hover:text-accent">hello@anewretreatandspa.com</a> before filing a dispute with your bank. We are committed to resolving billing issues promptly and directly.</p>
+              <p>If you believe a charge is incorrect, contact us at <a href="mailto:Admin@anewretreatandspa.com" className="text-dark underline hover:text-accent">Admin@anewretreatandspa.com</a> before filing a dispute with your bank. We are committed to resolving billing issues promptly and directly.</p>
             </section>
 
             <section>
@@ -77,7 +77,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-heading text-lg text-dark mb-3">10. Contact</h2>
-              <p>For questions about these terms, contact us at <a href="mailto:hello@anewretreatandspa.com" className="text-dark underline hover:text-accent">hello@anewretreatandspa.com</a>.</p>
+              <p>For questions about these terms, contact us at <a href="mailto:Admin@anewretreatandspa.com" className="text-dark underline hover:text-accent">Admin@anewretreatandspa.com</a>.</p>
             </section>
           </div>
         </AnimatedSection>

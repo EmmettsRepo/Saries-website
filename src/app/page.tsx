@@ -553,7 +553,7 @@ export default function HomePage() {
             </p>
             <div className="space-y-3 text-muted text-sm">
               <p>Kenmore, WA</p>
-              <p><a href="mailto:hello@anewretreatandspa.com" className="hover:text-accent transition-colors">hello@anewretreatandspa.com</a></p>
+              <p><a href="mailto:Admin@anewretreatandspa.com" className="hover:text-accent transition-colors">Admin@anewretreatandspa.com</a></p>
             </div>
           </AnimatedSection>
 

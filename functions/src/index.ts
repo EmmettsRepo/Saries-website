@@ -54,6 +54,7 @@ const ADMIN_EMAILS = new Set([
 const RATE_LIMITS: Record<string, number> = {
   createPaymentIntent: 10,
   submitTour: 5,
+  submitBookingInquiry: 5,
   refundBooking: 30,
   getAvailability: 60,
   hospitableWebhook: 120,
@@ -1048,6 +1049,174 @@ async function pushTourToHospitable(
     return null;
   }
 
+  const result = await r.json() as { data?: { id?: string; code?: string } };
+  return result.data?.id || result.data?.code || null;
+}
+
+// ============================================================================
+// BOOKING INQUIRY: contact form for guests who want to talk before paying.
+// Writes Firestore + pushes inquiry to Hospitable so the host can reply
+// and verify the booking through their normal Hospitable inbox.
+// ============================================================================
+interface InquiryPayload {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  date?: string;
+  guestCount?: number;
+  eventType?: string;
+  message?: string;
+  honeypot?: string;
+}
+
+export const submitBookingInquiry = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const ip = clientIp(req);
+    if (!(await enforceRateLimit("submitBookingInquiry", ip))) {
+      res.status(429).json({ error: "Too many requests" });
+      return;
+    }
+
+    try {
+      const body = (req.body || {}) as InquiryPayload;
+      if (body.honeypot) {
+        res.status(200).json({ success: true });
+        return;
+      }
+
+      const firstName = (body.firstName || "").trim().slice(0, 100);
+      const lastName = (body.lastName || "").trim().slice(0, 100);
+      const email = (body.email || "").trim().slice(0, 254).toLowerCase();
+      const phone = (body.phone || "").trim().slice(0, 30);
+      const date = (body.date || "").trim();
+      const eventType = (body.eventType || "").trim().slice(0, 60);
+      const message = (body.message || "").trim().slice(0, 2000);
+      const guestCount = Number.isFinite(body.guestCount as number)
+        ? Math.max(1, Math.min(75, Math.round(body.guestCount as number)))
+        : 0;
+
+      if (!firstName || !email || !date) {
+        res.status(400).json({ error: "Name, email, and date are required" });
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ error: "Invalid email" });
+        return;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        res.status(400).json({ error: "Date must be YYYY-MM-DD" });
+        return;
+      }
+      if (phone && !/^[\d\s+()\-.]{7,30}$/.test(phone)) {
+        res.status(400).json({ error: "Invalid phone" });
+        return;
+      }
+      const dateTs = Date.parse(date);
+      const now = Date.now();
+      if (!Number.isFinite(dateTs) || dateTs < now - 1000 * 60 * 60 * 24 || dateTs > now + 1000 * 60 * 60 * 24 * 365 * 3) {
+        res.status(400).json({ error: "Date out of range" });
+        return;
+      }
+
+      const doc = await db.collection("booking_inquiries_pending").add({
+        firstName,
+        lastName,
+        email,
+        phone,
+        date,
+        guestCount,
+        eventType,
+        message,
+        type: "booking_inquiry",
+        status: "new",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      let hospitableId: string | null = null;
+      try {
+        hospitableId = await pushBookingInquiryToHospitable(doc.id, {
+          firstName, lastName, email, phone, date, guestCount, eventType, message,
+        });
+        if (hospitableId) {
+          await doc.update({ hospitableReservationId: hospitableId });
+        }
+      } catch (err) {
+        console.error("Hospitable inquiry push failed:", err);
+        // Don't fail the request — the doc is saved; host will see it in admin.
+      }
+
+      res.status(200).json({ success: true, inquiryId: doc.id, hospitableId });
+    } catch (err) {
+      console.error("submitBookingInquiry error:", err);
+      res.status(500).json({ error: "Submission failed" });
+    }
+  });
+});
+
+async function pushBookingInquiryToHospitable(
+  inquiryId: string,
+  data: {
+    firstName: string; lastName: string; email: string; phone: string;
+    date: string; guestCount: number; eventType: string; message: string;
+  }
+): Promise<string | null> {
+  const token = hospitableApiToken.value();
+  const propertyId = hospitablePropertyId.value();
+  if (!token || !propertyId) {
+    console.log("Hospitable not configured — skipping inquiry push");
+    return null;
+  }
+
+  const checkIn = new Date(data.date);
+  const checkOut = new Date(checkIn);
+  checkOut.setDate(checkOut.getDate() + 1);
+
+  const notes = [
+    "BOOKING INQUIRY via anewretreatandspa.com",
+    `Inquiry ID: ${inquiryId}`,
+    data.eventType ? `Event type: ${data.eventType}` : "",
+    data.guestCount ? `Guests: ${data.guestCount}` : "",
+    `Email: ${data.email}`,
+    data.phone ? `Phone: ${data.phone}` : "",
+    data.message ? `Message: ${data.message}` : "",
+    "Reply via Hospitable to confirm or decline this booking.",
+  ].filter(Boolean).join(" | ");
+
+  const payload = {
+    properties: [propertyId],
+    check_in: checkIn.toISOString().split("T")[0],
+    check_out: checkOut.toISOString().split("T")[0],
+    guest: {
+      first_name: data.firstName || "Inquiry",
+      last_name: data.lastName || "Guest",
+      email: data.email,
+      phone: data.phone,
+    },
+    number_of_guests: data.guestCount || 1,
+    source: "direct",
+    notes,
+    confirmation_status: "inquiry",
+  };
+
+  const r = await fetch("https://public.api.hospitable.com/v2/reservations", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Hospitable ${r.status}: ${text}`);
+  }
   const result = await r.json() as { data?: { id?: string; code?: string } };
   return result.data?.id || result.data?.code || null;
 }

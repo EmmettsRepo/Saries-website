@@ -12,8 +12,8 @@ import AuthModal from "@/components/AuthModal";
 const navLinks = [
   { label: "About", href: "/venue" },
   { label: "Experiences", href: "/experiences" },
-  { label: "Gather", href: "/#events" },
   { label: "Gallery", href: "/gallery" },
+  { label: "Inquire", href: "/inquire" },
 ];
 
 export default function Navbar() {
