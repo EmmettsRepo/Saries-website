@@ -33,7 +33,7 @@ const faqs = [
   { q: "What about the spa and wellness services?", a: "Our on-site spa features sauna, massage therapy, IV therapy, and soaking tub experiences. Available by appointment for guests and event attendees." },
   { q: "Can I bring my own vendors?", a: "Yes. We welcome approved outside vendors and maintain a preferred vendor list." },
   { q: "What's included in the base price?", a: "Every booking includes the venue, overnight stay, basic setup (tables and chairs), parking, and access to all indoor and outdoor spaces. Catering, photography, and florals are available as add-ons." },
-  { q: "Deposit and cancellation?", a: "25% non-refundable deposit secures your date. Cancellations 60+ days out receive 50% refund of remaining balance." },
+  { q: "Booking policy?", a: "Reservations require a minimum of 3 days advance notice. All bookings are paid in full at checkout and are non-refundable." },
   { q: "Setup and cleanup?", a: "2-4 hour setup windows included. Cleanup package available for $350." },
   { q: "Noise restrictions?", a: "Amplified music until 10 PM. Acoustic music and conversation may continue." },
 ];

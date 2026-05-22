@@ -43,6 +43,15 @@ export default function AvailabilityCalendar({
     return d;
   }, []);
 
+  // Bookings require at least 3 days lead time so we have time to prep the
+  // property and confirm details. Dates inside this window render disabled.
+  const MIN_LEAD_DAYS = 3;
+  const minBookingDate = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + MIN_LEAD_DAYS);
+    return d;
+  }, [today]);
+
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [availability, setAvailability] = useState<Record<string, CalendarDay>>({});
@@ -126,7 +135,9 @@ export default function AvailabilityCalendar({
       const date = new Date(viewYear, viewMonth, d);
       const dateKey = dateKeyFor(viewYear, viewMonth, d);
       const data = availability[dateKey];
-      const status: DayStatus = data?.status ?? (date < today ? "past" : "available");
+      // Treat anything earlier than the 3-day lead-time floor as "past" so the
+      // calendar greys it out and selection is blocked.
+      const status: DayStatus = data?.status ?? (date < minBookingDate ? "past" : "available");
       const isToday =
         d === today.getDate() &&
         viewMonth === today.getMonth() &&
@@ -145,12 +156,14 @@ export default function AvailabilityCalendar({
       rows.push(currentRow);
     }
     return rows;
-  }, [viewYear, viewMonth, today, availability, selectedKey]);
+  }, [viewYear, viewMonth, today, minBookingDate, availability, selectedKey]);
 
   const handleSelect = (dateKey: string, status: DayStatus) => {
     if (!onSelectDate) return;
     if (status === "past" || status === "booked") return;
-    onSelectDate(new Date(dateKey + "T00:00:00"));
+    const picked = new Date(dateKey + "T00:00:00");
+    if (picked < minBookingDate) return; // enforce 3-day lead time
+    onSelectDate(picked);
   };
 
   return (

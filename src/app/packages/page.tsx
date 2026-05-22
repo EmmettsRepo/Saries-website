@@ -80,8 +80,8 @@ const addOns = [
 ];
 
 const pricingFaqs = [
-  { q: "What deposit is required?", a: "25% non-refundable deposit to secure your date. Remaining balance due 30 days before." },
-  { q: "Cancellation policy?", a: "60+ days out: 50% refund of balance. Under 60 days: non-refundable. Date changes subject to availability." },
+  { q: "How does payment work?", a: "Bookings are paid in full at checkout to secure your date. Reservations require a minimum of 3 days advance notice." },
+  { q: "Cancellation policy?", a: "All bookings are non-refundable once payment has been processed. Date changes may be accommodated based on availability." },
   { q: "Can packages be customized?", a: "Every package is a starting point. We're happy to adjust features to match your vision." },
   { q: "What's not included?", a: "Catering, photography, florals, and entertainment are available as add-ons or through your own vendors." },
   { q: "Payment methods?", a: "Credit cards, bank transfers, and checks. Payment plans available for events 6+ months out." },

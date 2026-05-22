@@ -87,7 +87,16 @@ function BookingPageInner() {
   const validateStep = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 0) {
-      if (!form.selectedDate) errs.selectedDate = "Select an arrival date";
+      if (!form.selectedDate) {
+        errs.selectedDate = "Select an arrival date";
+      } else {
+        const minDate = new Date();
+        minDate.setHours(0, 0, 0, 0);
+        minDate.setDate(minDate.getDate() + 3);
+        if (form.selectedDate < minDate) {
+          errs.selectedDate = "Bookings require at least 3 days advance notice";
+        }
+      }
     }
     if (step === 1) {
       if (!form.eventType) errs.eventType = "Required";
@@ -297,7 +306,7 @@ function BookingPageInner() {
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input type="checkbox" checked={form.agreeTerms} onChange={(e) => updateForm({ agreeTerms: e.target.checked })} className="w-4 h-4 mt-0.5 rounded-none border-border text-accent focus:ring-accent" />
                         <span className="text-sm text-muted">
-                          I agree to pay <span className="text-dark font-medium">${chargeAmount.toLocaleString()}</span> in full to secure my reservation. 50% refundable up to 60 days before arrival; non-refundable inside 60 days.
+                          I agree to pay <span className="text-dark font-medium">${chargeAmount.toLocaleString()}</span> in full to secure my reservation. All bookings are non-refundable.
                         </span>
                       </label>
                       {errors.agreeTerms && <p className="text-red-500 text-xs">{errors.agreeTerms}</p>}
@@ -397,7 +406,7 @@ function BookingPageInner() {
                   <span className="text-sm text-dark">Total Due</span>
                   <span className="font-heading text-2xl text-dark">${chargeAmount.toLocaleString()}</span>
                 </div>
-                <p className="text-[10px] text-muted mt-4 italic">Charged in full at checkout. 50% refundable up to 60 days before arrival.</p>
+                <p className="text-[10px] text-muted mt-4 italic">Charged in full at checkout. All bookings are non-refundable. Minimum 3 days advance notice required.</p>
               </div>
             </div>
           </div>

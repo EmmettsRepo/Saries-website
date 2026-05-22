@@ -24,13 +24,12 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="font-heading text-lg text-dark mb-3">2. Cancellation & Refund Policy</h2>
+              <h2 className="font-heading text-lg text-dark mb-3">2. Booking & Cancellation Policy</h2>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Cancellations 60+ days before arrival: 50% refund of the total amount paid</li>
-                <li>Cancellations within 60 days of arrival: non-refundable</li>
+                <li>Reservations require a minimum of 3 days advance notice</li>
+                <li>All bookings are non-refundable once payment has been processed</li>
                 <li>Date changes may be accommodated based on availability at no additional charge</li>
-                <li>Weather-related cancellations are handled on a case-by-case basis</li>
-                <li>Refunds are processed to the original payment method within 5-10 business days</li>
+                <li>Weather-related issues are handled on a case-by-case basis</li>
               </ul>
             </section>
 
