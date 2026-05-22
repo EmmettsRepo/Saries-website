@@ -138,10 +138,14 @@ export const createPaymentIntent = onRequest((req, res) => {
       const amount = body.amount;
       const currency = typeof body.currency === "string" ? body.currency : "usd";
 
-      // Server-side allowlist of valid charge amounts (cents).
-      // Anything else is treated as price tampering and rejected.
+      // Server-side allowlist of valid charge amounts (cents). Mirrors
+      // BLOCK_OPTIONS in src/lib/booking.ts. Anything else is treated as
+      // price tampering and rejected.
       const VALID_AMOUNTS_CENTS = new Set<number>([
-        550000, // $5,500 — flat day rate at the estate
+        150000, // $1,500 — 4-hour block
+        250000, // $2,500 — 8-hour block
+        350000, // $3,500 — 12-hour block
+        550000, // $5,500 — 24-hour (full day)
       ]);
       if (typeof amount !== "number" || !Number.isFinite(amount) || !VALID_AMOUNTS_CENTS.has(Math.round(amount))) {
         console.warn(`Rejected payment intent — invalid amount ${amount} from ip=${ip}`);

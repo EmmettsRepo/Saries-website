@@ -219,18 +219,51 @@ function BookingPageInner() {
                       </div>
 
                       <div>
-                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Your Stay</label>
-                        <div className="p-6 border border-dark">
-                          <div className="flex items-baseline justify-between mb-2">
-                            <div className="font-heading text-xl text-dark">Full Day at the Estate</div>
-                            <div className="font-heading text-2xl text-dark">$5,500</div>
-                          </div>
-                          <p className="text-sm text-muted">
-                            Check-in {formatTime(form.startTime)} · Check-out {formatTime(form.endTime)} the following day
-                          </p>
-                          <p className="text-xs text-muted mt-2">The estate is yours for 24 hours — sleeps up to 16 across 7 bedrooms.</p>
+                        <label className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-3">Duration *</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {BLOCK_OPTIONS.map((b) => (
+                            <button
+                              key={b.hours}
+                              type="button"
+                              onClick={() => updateForm({ blockHours: b.hours })}
+                              className={`p-4 border text-left transition-all ${
+                                form.blockHours === b.hours ? "border-dark text-dark" : "border-border text-muted hover:border-dark"
+                              }`}
+                            >
+                              <div className="font-heading text-lg">{b.label}</div>
+                              <div className="text-[10px] tracking-[0.1em] uppercase mt-1">{b.desc}</div>
+                              <div className="text-sm text-dark mt-2">${b.price.toLocaleString()}</div>
+                            </button>
+                          ))}
                         </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="startTime" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">Start Time *</label>
+                          <input
+                            id="startTime"
+                            type="time"
+                            value={form.startTime}
+                            onChange={(e) => updateForm({ startTime: e.target.value })}
+                            className={inputClass("startTime")}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="endTime" className="text-[11px] tracking-[0.2em] uppercase text-muted block mb-2">End Time *</label>
+                          <input
+                            id="endTime"
+                            type="time"
+                            value={form.endTime}
+                            onChange={(e) => updateForm({ endTime: e.target.value })}
+                            className={inputClass("endTime")}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted">
+                        {formatTime(form.startTime)} – {formatTime(form.endTime)} · {form.blockHours} hr block
+                        {form.blockHours === 24 && " (overnight — check-out the following morning)"}
+                      </p>
                     </div>
                   )}
 

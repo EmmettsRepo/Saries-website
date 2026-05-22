@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -106,81 +106,78 @@ export default function StripePayment({
   metadata = {},
 }: PaymentFormProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const initStartedRef = useRef(false);
 
-  const initPayment = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const res = await fetch(`${FUNCTIONS_URL}/createPaymentIntent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100), // convert to cents
-          metadata,
-        }),
-      });
+  // Auto-create the payment intent on mount so the Stripe card form
+  // renders immediately. No intermediate "Proceed to Payment" button.
+  // The amount is locked to whatever the client passes in; the Cloud
+  // Function validates it against the server-side allowlist anyway.
+  useEffect(() => {
+    if (initStartedRef.current) return;
+    initStartedRef.current = true;
+    let cancelled = false;
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to initialize payment");
+    (async () => {
+      try {
+        const res = await fetch(`${FUNCTIONS_URL}/createPaymentIntent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: Math.round(amount * 100),
+            metadata,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to initialize payment");
+        }
+        const data = await res.json();
+        if (!cancelled) setClientSecret(data.clientSecret);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to initialize payment";
+        if (!cancelled) {
+          setFetchError(msg);
+          onError(msg);
+        }
       }
+    })();
 
-      const data = await res.json();
-      setClientSecret(data.clientSecret);
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to initialize payment";
-      setFetchError(msg);
-      onError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [amount, metadata, onError]);
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (fetchError) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 border border-red-200 p-3">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{fetchError}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => { initStartedRef.current = false; setFetchError(null); }}
+          className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (!clientSecret) {
     return (
       <div className="space-y-6">
         <div className="border border-border p-6 bg-cream/30">
           <div className="flex justify-between items-center mb-4">
-            <p className="text-[11px] tracking-[0.2em] uppercase text-muted">
-              Total Due
-            </p>
-            <span className="font-heading text-2xl text-dark">
-              ${amount.toLocaleString()}
-            </span>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-muted">Total Due</p>
+            <span className="font-heading text-2xl text-dark">${amount.toLocaleString()}</span>
           </div>
-          <p className="text-xs text-muted leading-relaxed mb-1">
-            Pay in full to lock in your reservation. You&apos;ll receive a
-            confirmation email with all the details.
-          </p>
-          <p className="text-xs text-muted leading-relaxed">
-            All bookings are non-refundable.
-          </p>
+          <p className="text-xs text-muted leading-relaxed">All bookings are non-refundable.</p>
         </div>
-
-        {fetchError && (
-          <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 border border-red-200 p-3">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{fetchError}</span>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={initPayment}
-          disabled={loading}
-          className="w-full text-[11px] tracking-[0.3em] uppercase bg-dark text-white py-4 hover:bg-accent transition-colors duration-500 disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          <Lock className="w-3 h-3" />
-          {loading ? "Setting up payment..." : "Proceed to Payment"}
-        </button>
-
-        <p className="text-[10px] text-muted text-center flex items-center justify-center gap-1">
-          <Lock className="w-3 h-3" />
-          Secured by Stripe. Your card details never touch our servers.
-        </p>
+        <div className="border border-border p-6 text-center">
+          <p className="text-sm text-muted">Loading secure payment form...</p>
+        </div>
       </div>
     );
   }
