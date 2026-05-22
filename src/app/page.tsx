@@ -304,14 +304,6 @@ export default function HomePage() {
                   </div>
                   <h4 className="font-heading text-xl text-dark mb-1">{room.name}</h4>
                   <p className="text-sm text-muted leading-relaxed">{room.desc}</p>
-                  <div className="mt-4 flex gap-4">
-                    <Link href="/venue" className="text-[10px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-0.5 hover:text-accent hover:border-accent transition-colors">
-                      Explore
-                    </Link>
-                    <Link href="/booking" className="text-[10px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-0.5 hover:text-accent hover:border-accent transition-colors">
-                      Book
-                    </Link>
-                  </div>
                 </div>
               </AnimatedSection>
             ))}
