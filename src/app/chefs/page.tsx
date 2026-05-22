@@ -75,7 +75,7 @@ export default function ChefsPage() {
               <ChefHat className="w-10 h-10 text-accent mx-auto mb-4" />
               <h2 className="font-heading text-2xl text-dark mb-3">Chefs Coming Soon</h2>
               <p className="text-muted text-sm max-w-md mx-auto mb-8">We&apos;re curating an exceptional roster of private chefs. Check back soon or inquire about our dining experiences.</p>
-              <Link href="/booking" className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-8 py-3 hover:bg-accent transition-colors duration-500">
+              <Link href="/inquire" className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-8 py-3 hover:bg-accent transition-colors duration-500">
                 Inquire About Dining
               </Link>
             </div>

@@ -358,7 +358,7 @@ export default function HomePage() {
             </p>
             <div className="flex items-center gap-6">
               <Link
-                href="/experiences"
+                href="/inquire"
                 className="text-[11px] tracking-[0.3em] uppercase bg-dark text-white px-6 py-3 hover:bg-accent transition-colors duration-500"
               >
                 Book a Chef

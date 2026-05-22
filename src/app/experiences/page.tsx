@@ -154,7 +154,7 @@ export default function ExperiencesPage() {
                     ))}
                   </div>
                   <div className="flex items-center gap-6">
-                    <Link href="/booking" className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors">
+                    <Link href="/inquire" className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors">
                       Inquire
                     </Link>
                   </div>

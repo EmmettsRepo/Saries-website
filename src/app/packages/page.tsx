@@ -165,7 +165,7 @@ export default function PackagesPage() {
                             ))}
                           </div>
                           <Link
-                            href="/booking"
+                            href={pkg.price === "Let's Talk" ? "/inquire" : "/booking"}
                             className="text-[11px] tracking-[0.3em] uppercase text-dark border-b border-dark pb-1 hover:text-accent hover:border-accent transition-colors"
                           >
                             {pkg.price === "Let's Talk" ? "Inquire" : "Select Package"}
