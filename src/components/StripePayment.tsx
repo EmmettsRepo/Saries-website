@@ -38,10 +38,14 @@ function CheckoutForm({
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Track whether Stripe has finished mounting the PaymentElement. If the
+  // card form fails to mount (CSP block, network, etc.) the user shouldn't
+  // be able to click Pay against an empty form.
+  const [elementReady, setElementReady] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || !elementReady) return;
 
     setProcessing(true);
     setError(null);
@@ -66,10 +70,18 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {!elementReady && (
+        <div className="border border-border p-6 text-center text-sm text-muted">
+          Loading card form...
+        </div>
+      )}
       <PaymentElement
-        options={{
-          layout: "tabs",
-          defaultValues: {},
+        options={{ layout: "tabs" }}
+        onReady={() => setElementReady(true)}
+        onLoadError={(e) => {
+          const msg = e?.error?.message || "Card form failed to load.";
+          setError(msg);
+          onError(msg);
         }}
       />
 
@@ -82,12 +94,14 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={!stripe || processing}
+        disabled={!stripe || !elementReady || processing}
         className="w-full text-[11px] tracking-[0.3em] uppercase bg-dark text-white py-4 hover:bg-accent transition-colors duration-500 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         <Lock className="w-3 h-3" />
         {processing
           ? "Processing..."
+          : !elementReady
+          ? "Waiting for card form..."
           : `Pay $${amount.toLocaleString()}`}
       </button>
 
@@ -182,48 +196,21 @@ export default function StripePayment({
     );
   }
 
+  // Use Stripe's default 'stripe' theme — minimal customization to avoid
+  // any CSS rules that could make the form invisible. Brand colors only.
   return (
     <Elements
       stripe={stripePromise}
       options={{
         clientSecret,
         appearance: {
-          theme: "flat",
+          theme: "stripe",
           variables: {
-            fontFamily: "inherit",
             colorPrimary: "#6B7B3A",
-            colorBackground: "#FDFBF7",
             colorText: "#2C2C2C",
             colorDanger: "#dc2626",
+            fontFamily: "inherit",
             borderRadius: "0px",
-            spacingUnit: "4px",
-          },
-          rules: {
-            ".Input": {
-              border: "1px solid #E8E4DE",
-              boxShadow: "none",
-              padding: "12px",
-              fontSize: "14px",
-            },
-            ".Input:focus": {
-              border: "1px solid #6B7B3A",
-              boxShadow: "none",
-            },
-            ".Label": {
-              fontSize: "11px",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#8B8680",
-              marginBottom: "8px",
-            },
-            ".Tab": {
-              border: "1px solid #E8E4DE",
-              boxShadow: "none",
-            },
-            ".Tab--selected": {
-              border: "1px solid #2C2C2C",
-              boxShadow: "none",
-            },
           },
         },
       }}
