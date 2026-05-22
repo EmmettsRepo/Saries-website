@@ -173,10 +173,15 @@ export const createPaymentIntent = onRequest((req, res) => {
       metadata.source = "anew-booking";
       metadata.clientIp = ip;
 
+      // Lock to card-only. Default automatic_payment_methods enables Klarna,
+      // Link, CashApp, Amazon Pay — all of which add geo/redirect resolution
+      // steps that can hang the PaymentElement initialization. Card is what
+      // we want anyway for a venue booking.
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount),
         currency,
         metadata,
+        payment_method_types: ["card"],
       });
 
       res.status(200).json({

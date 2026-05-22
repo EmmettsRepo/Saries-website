@@ -70,20 +70,19 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {!elementReady && (
-        <div className="border border-border p-6 text-center text-sm text-muted">
-          Loading card form...
-        </div>
-      )}
-      <PaymentElement
-        options={{ layout: "tabs" }}
-        onReady={() => setElementReady(true)}
-        onLoadError={(e) => {
-          const msg = e?.error?.message || "Card form failed to load.";
-          setError(msg);
-          onError(msg);
-        }}
-      />
+      {/* Stripe ships its own loading skeleton inside PaymentElement —
+          don't draw a custom one on top of it. */}
+      <div className="min-h-[200px]">
+        <PaymentElement
+          options={{ layout: "tabs" }}
+          onReady={() => setElementReady(true)}
+          onLoadError={(e) => {
+            const msg = e?.error?.message || "Card form failed to load.";
+            setError(msg);
+            onError(msg);
+          }}
+        />
+      </div>
 
       {error && (
         <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 border border-red-200 p-3">
@@ -94,14 +93,12 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={!stripe || !elementReady || processing}
+        disabled={!stripe || processing}
         className="w-full text-[11px] tracking-[0.3em] uppercase bg-dark text-white py-4 hover:bg-accent transition-colors duration-500 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         <Lock className="w-3 h-3" />
         {processing
           ? "Processing..."
-          : !elementReady
-          ? "Waiting for card form..."
           : `Pay $${amount.toLocaleString()}`}
       </button>
 
